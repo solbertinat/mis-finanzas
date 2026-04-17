@@ -804,7 +804,20 @@ const catBadge = {comida:'b-food',transporte:'b-transport',servicios:'b-services
 
 
 function addTransaction(tx) {
+  // Check by exact ID
   if(tx.id && state.transactions.find(t=>t.id===tx.id)) return false;
+  // Check by originalId — set once at import, never changes even if user edits
+  if(tx.originalId && state.transactions.find(t=>t.originalId===tx.originalId || t.id===tx.originalId)) return false;
+  // Fallback: check by date + amount only (never modified by user)
+  if(tx.date && tx.amount && !tx.id.startsWith('manual-')) {
+    const existing = state.transactions.find(t =>
+      t.date === tx.date &&
+      Math.round(t.amount) === Math.round(tx.amount) &&
+      t.type === tx.type &&
+      (t.originalId === tx.id || t.id === tx.id)
+    );
+    if(existing) return false;
+  }
   const d = new Date(tx.date);
   tx.month = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   state.transactions.push(tx);
@@ -1030,6 +1043,18 @@ function splitCsvLine(line, sep) {
   return result;
 }
 
+
+function stableId(date, amount, desc, source) {
+  // Create a stable ID from transaction fingerprint
+  const str = [source||'', date||'', String(Math.round(Math.abs(amount||0))), (desc||'').substring(0,20).toLowerCase().trim()].join('|');
+  // Simple hash
+  let h = 0;
+  for(let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return source + '-' + Math.abs(h).toString(36);
+}
+
 function parseMpRows(rows) {
   const result=[];
   rows.forEach((row,i)=>{
@@ -1053,7 +1078,8 @@ function parseMpRows(rows) {
     const cat = guessCategory(desc);
 
     result.push({
-      id: `mp-csv-${date}-${i}-${amount}`,
+      id: stableId(date, amount, desc, 'mp'),
+      originalId: stableId(date, amount, desc, 'mp'),
       date,
       desc: desc||'Movimiento MP',
       amount: Math.abs(amount),
@@ -1157,7 +1183,8 @@ Si no podés determinar un campo, usá valores razonables. NO incluyas texto exp
 
     const parsed = Array.isArray(result)?result:[result];
     const txs = parsed.map((r,i)=>({
-      id:`mp-ss-${r.date}-${i}`,
+      id: stableId(r.date, r.amount, r.desc, 'mp-ss'),
+        originalId: stableId(r.date, r.amount, r.desc, 'mp-ss'),
       date: r.date||new Date().toISOString().split('T')[0],
       desc: r.desc||'Movimiento MP',
       amount: Math.abs(parseFloat(r.amount)||0),
@@ -1245,15 +1272,18 @@ Si no hay USD, usá 0. NO incluyas texto explicativo, SOLO el JSON.`);
 // ═══════════════════════════════════════════════════
 async function confirmImport(source) {
   if(source==='screenshot'||source==='mpcsv') {
-    let added=0;
-    pendingImport[source].forEach(tx=>{ if(addTransaction(tx)) added++; });
+    let added=0, skipped=0;
+    pendingImport[source].forEach(tx=>{ if(addTransaction(tx)) added++; else skipped++; });
     showSavingIndicator('Guardando...');
     await save('transactions');
     hideSavingIndicator();
     refreshAll();
     el('preview-'+source).style.display='none';
-    showMsg('msg-'+source,`${added} movimientos importados correctamente.`,'success');
-    showNotif(`${added} movimientos importados`);
+    const msg = skipped > 0
+      ? `${added} movimientos importados, ${skipped} ya existían y se saltaron.`
+      : `${added} movimientos importados correctamente.`;
+    showMsg('msg-'+source, msg, 'success');
+    showNotif(`${added} importados${skipped?' · '+skipped+' duplicados':''}`);;
   }
   if(source==='balanz') {
     const r = pendingImport.balanz;
@@ -1751,42 +1781,4 @@ function renderTxList() {
         <div class="tx-meta">${t.source||'Manual'} <span class="badge ${badge}">${t.category||'otros'}</span></div>
       </div>
       <div class="tx-right">
-        <div class="tx-amount ${col}">${sign}$${fmt(t.amount)}</div>
-        <div class="tx-date-small">${formatDate(t.date)}</div>
-      </div>
-    </div>`;
-  };
-
-  // Add fixed expenses to expense list
-  const fixedRows = state.fixed.map(f => `
-    <div class="tx-row">
-      <div class="tx-icon">🔒</div>
-      <div class="tx-info">
-        <div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span></div>
-        <div class="tx-meta">${f.cat}</div>
-      </div>
-      <div class="tx-right">
-        <div class="tx-amount neg">−$${fmt(f.amount)}</div>
-        <div class="tx-date-small">mensual</div>
-      </div>
-    </div>`);
-
-  expenseList.innerHTML = [...fixedRows, ...expenses.map(makeRow)].join('') ||
-    '<div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div>';
-  incomeList.innerHTML = incomes.map(makeRow).join('') ||
-    '<div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div>';
-}
-
-// ═══════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', async () => {
-  const now = new Date();
-  const dateEl = document.getElementById('topbar-date');
-  if(dateEl) dateEl.textContent = now.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'long'});
-  await load();
-  refreshAll();
-});
-</script>
-</body>
-</html>
+        <div class="tx-amount ${col}">${sign}$${fmt(t.amount)}</di
