@@ -609,6 +609,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 <div class="notif" id="notif"></div>
 
 <script>
+// v2.1 — 202604171938
 // ═══════════════════════════════════════════════════
 // STATE & STORAGE — Supabase
 // ═══════════════════════════════════════════════════
@@ -1781,4 +1782,43 @@ function renderTxList() {
         <div class="tx-desc">${t.desc||'Movimiento'}</div>
         <div class="tx-meta">${t.source||'Manual'} <span class="badge ${badge}">${t.category||'otros'}</span></div>
       </div>
-      <div clas
+      <div class="tx-right">
+        <div class="tx-amount ${col}">${sign}$${fmt(t.amount)}</div>
+        <div class="tx-date-small">${formatDate(t.date)}</div>
+      </div>
+    </div>`;
+  };
+
+  // Add fixed expenses to expense list
+  const fixedRows = state.fixed.map(f => `
+    <div class="tx-row">
+      <div class="tx-icon">🔒</div>
+      <div class="tx-info">
+        <div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span></div>
+        <div class="tx-meta">${f.cat}</div>
+      </div>
+      <div class="tx-right">
+        <div class="tx-amount neg">−$${fmt(f.amount)}</div>
+        <div class="tx-date-small">mensual</div>
+      </div>
+    </div>`);
+
+  expenseList.innerHTML = [...fixedRows, ...expenses.map(makeRow)].join('') ||
+    '<div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div>';
+  incomeList.innerHTML = incomes.map(makeRow).join('') ||
+    '<div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div>';
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  const now = new Date();
+  const dateEl = document.getElementById('topbar-date');
+  if(dateEl) dateEl.textContent = now.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'long'});
+  await load();
+  refreshAll();
+});
+</script>
+</body>
+</html>
