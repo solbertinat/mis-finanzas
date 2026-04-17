@@ -660,7 +660,7 @@ async function load() {
       supa.get('balanz?id=eq.1'),
       supa.get('saldos?id=eq.1'),
     ]);
-    state.transactions = (txs||[]).map(t => ({...t, desc: t.description}));
+    state.transactions = (txs||[]).map(t => ({...t, desc: t.description, originalId: t.original_id || t.id}));
     state.fixed        = fixed || [];
     state.balanz       = balanz?.[0] || state.balanz;
     state.saldos       = saldos?.[0] || state.saldos;
@@ -680,7 +680,8 @@ async function save(key) {
         await supa.upsert('transactions', [{
           id: String(t.id), date: t.date, description: t.desc,
           amount: t.amount, type: t.type, category: t.category,
-          source: t.source, medio: t.medio, month: t.month
+          source: t.source, medio: t.medio, month: t.month,
+          original_id: t.originalId || t.id
         }]);
       }
     }
@@ -1780,5 +1781,4 @@ function renderTxList() {
         <div class="tx-desc">${t.desc||'Movimiento'}</div>
         <div class="tx-meta">${t.source||'Manual'} <span class="badge ${badge}">${t.category||'otros'}</span></div>
       </div>
-      <div class="tx-right">
-        <div class="tx-amount ${col}">${sign}$${fmt(t.amount)}</di
+      <div clas
