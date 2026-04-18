@@ -234,6 +234,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .b-cat-generado{background:#D6FFE8;color:#0A5A2A;border:1px solid #60D090;}
 .b-income{background:#D6F5EB;color:#0A5A3A;border:1px solid #60C0A0;}
 .b-fixed{background:#D8EAFF;color:#0A2E6B;border:1px solid #80AAEE;}
+.api-key-btn{font-size:11px;padding:5px 12px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:"DM Sans",sans-serif;}
+.api-key-btn:hover{background:var(--surface2);}
 </style>
 </head>
 <body>
@@ -244,6 +246,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   </div>
   <div class="topbar-right">
     <span class="topbar-date" id="topbar-date"></span>
+    <button class="api-key-btn" id="api-key-btn" onclick="toggleApiSetup()">⚡ IA</button>
     <span id="save-indicator" style="font-size:11px;color:var(--green);opacity:0;transition:opacity 0.3s;font-family:'DM Mono',monospace;"></span>
     <label class="api-key-btn" style="cursor:pointer;" title="Importar backup">
       ↑ Importar
@@ -253,6 +256,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   </div>
 </div>
 
+<div id="api-setup" style="display:none;background:var(--blue-bg);border:1px solid #b8d0f0;border-radius:var(--r);padding:12px 16px;margin:12px 20px 0 20px;">
+  <p style="font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:10px;">
+    Ingresá tu API key de Anthropic para analizar screenshots con IA. Se guarda en este navegador — solo necesitás hacerlo una vez por dispositivo.<br>
+    Conseguila en <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue);font-weight:500;">console.anthropic.com</a>
+  </p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input type="password" id="api-key-input" placeholder="sk-ant-..." style="flex:1;min-width:200px;padding:7px 11px;border:1px solid #b8d0f0;border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface);">
+    <button class="btn btn-primary" onclick="saveApiKey()" style="font-size:12px;">Guardar</button>
+    <button class="btn" onclick="clearApiKey()" style="font-size:12px;">Borrar</button>
+  </div>
+</div>
 <div class="container">
 
     <!-- METRICS -->
@@ -761,7 +775,7 @@ function hideSavingIndicator() {
 // ═══════════════════════════════════════════════════
 // API KEY (for AI image analysis)
 // ═══════════════════════════════════════════════════
-function getApiKey() { return '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'; }
+function getApiKey() { return localStorage.getItem('fin_api_key')||''; }
 
 // ═══════════════════════════════════════════════════
 // METRICS
@@ -1845,6 +1859,32 @@ function showDisponibleDetail() {
   `;
   openModal('modal-disponible');
 }
+
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if(!val.startsWith('sk-ant-')) { showNotif('La key debe comenzar con sk-ant-'); return; }
+  localStorage.setItem('fin_api_key', val);
+  updateApiBtn();
+  document.getElementById('api-setup').style.display='none';
+  showNotif('API key guardada — funciona en este dispositivo');
+}
+function clearApiKey() {
+  localStorage.removeItem('fin_api_key');
+  document.getElementById('api-key-input').value='';
+  updateApiBtn();
+  showNotif('API key eliminada');
+}
+function toggleApiSetup() {
+  const panel = document.getElementById('api-setup');
+  panel.style.display = panel.style.display==='none'?'block':'none';
+  document.getElementById('api-key-input').value = getApiKey();
+}
+function updateApiBtn() {
+  const btn = document.getElementById('api-key-btn');
+  if(!btn) return;
+  if(getApiKey()) { btn.textContent='⚡ IA ✓'; btn.style.color='var(--green)'; btn.style.borderColor='var(--green)'; }
+  else { btn.textContent='⚡ IA'; btn.style.color=''; btn.style.borderColor=''; }
+}
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
@@ -1893,6 +1933,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   const now = new Date();
   const dateEl = document.getElementById('topbar-date');
   if(dateEl) dateEl.textContent = now.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'long'});
+  updateApiBtn();
   await load();
   await applyFixedExpenses();
   refreshAll();
