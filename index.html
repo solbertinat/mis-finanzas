@@ -1613,10 +1613,6 @@ function renderTxList() {
   const sorted=[...state.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const expenses=sorted.filter(t=>t.type==='expense');
   const incomes=sorted.filter(t=>t.type==='income');
-  const now=new Date();
-  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const fixedApplied=state.transactions.some(t=>t.month===thisMonth&&t.source==='Fijo mensual');
-  const incFixedApplied=state.transactions.some(t=>t.month===thisMonth&&t.source==='Ingreso fijo');
 
   const makeRow=(t,tipo)=>{
     const isFixed=t.source==='Fijo mensual'||t.source==='Ingreso fijo';
@@ -1639,25 +1635,9 @@ function renderTxList() {
     </div>`;
   };
 
-  const fixedRefRows=(!fixedApplied?state.fixed:[]).map(f=>`
-    <div class="tx-row" style="cursor:pointer;opacity:0.6;" onclick="openEditModal('fixed','${f.id}')">
-      <div class="tx-icon">🔒</div>
-      <div class="tx-info"><div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span></div>
-      <div class="tx-meta">${f.cat} · pendiente este mes</div></div>
-      <div class="tx-right"><div class="tx-amount neg">−$${fmt(f.amount)}</div></div>
-    </div>`);
-
-  const incomeFixedRefRows=(!incFixedApplied?(state.incomeFixed||[]):[]).map(f=>`
-    <div class="tx-row" style="cursor:pointer;opacity:0.6;" onclick="openEditModal('income_fixed','${f.id}')">
-      <div class="tx-icon">🔒</div>
-      <div class="tx-info"><div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span></div>
-      <div class="tx-meta">Ingreso fijo · pendiente este mes</div></div>
-      <div class="tx-right"><div class="tx-amount pos">+$${fmt(f.amount)}</div></div>
-    </div>`);
-
-  expenseList.innerHTML=[...fixedRefRows,...expenses.map(t=>makeRow(t,'expense'))].join('')||
+  expenseList.innerHTML=expenses.map(t=>makeRow(t,'expense')).join('')||
     '<div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div>';
-  incomeList.innerHTML=[...incomeFixedRefRows,...incomes.map(t=>makeRow(t,'income'))].join('')||
+  incomeList.innerHTML=incomes.map(t=>makeRow(t,'income')).join('')||
     '<div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div>';
 }
 
