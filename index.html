@@ -262,21 +262,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div class="m-value mono up" id="m-ingresos">$0</div>
       <div class="m-sub up" id="m-ingresos-vs"></div>
     </div>
-    <div class="metric">
-      <div class="m-label">Inversiones Balanz</div>
-      <div class="m-value mono" id="m-inv-usd">U$S 0</div>
-      <div class="m-sub2" id="m-inv-ars">— ARS</div>
-      <div class="m-sub up" id="m-inv-vs"></div>
-    </div>
+    
   </div>
 
   <!-- TABS -->
   <div class="tabs-wrap">
     <div class="tabs">
       <button class="tab active" onclick="showTab('gastos')">Gastos</button>
-      <button class="tab" onclick="showTab('ahorros')">Ahorros</button>
-      <button class="tab" onclick="showTab('inversiones')">Inversiones</button>
-      <button class="tab" onclick="showTab('importar')">Importar</button>
+          <button class="tab" onclick="showTab('importar')">Importar</button>
     </div>
   </div>
 
@@ -284,73 +277,41 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div id="tab-gastos">
     <div class="two-col">
       <div class="card">
-        <div class="card-title">Por categoría</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="card-title" style="margin-bottom:0;">Gastos</div>
+          <button class="btn btn-sm" onclick="openAddModal('expense')">+ Agregar gasto</button>
+        </div>
+        <div class="tx-scroll">
+          <div id="tx-list-expense"><div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="card-title" style="margin-bottom:0;">Ingresos</div>
+          <button class="btn btn-sm" onclick="openAddModal('income')">+ Agregar ingreso</button>
+        </div>
+        <div class="tx-scroll">
+          <div id="tx-list-income"><div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Gastos por categoría</div>
         <div class="legend" id="pie-legend"></div>
         <div style="position:relative;height:190px;">
           <canvas id="pieChart" role="img" aria-label="Gastos por categoría"></canvas>
         </div>
       </div>
       <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <div class="card-title" style="margin-bottom:0;">Gastos</div>
-          <button class="btn btn-sm" onclick="openGastosModal('agregar','expense')">+ Agregar gasto</button>
+        <div class="card-title">Evolución mensual</div>
+        <div class="legend">
+          <span class="leg"><span class="leg-dot" style="background:#378ADD"></span>Variables</span>
+          <span class="leg"><span class="leg-dot" style="background:#7F77DD"></span>Fijos</span>
+          <span class="leg"><span class="leg-dot" style="background:#1D9E75"></span>Ingresos</span>
         </div>
-        <div class="tx-scroll">
-          <div id="tx-list-expense"><div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div></div>
-        </div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div class="card-title" style="margin-bottom:0;">Ingresos</div>
-        <button class="btn btn-sm" onclick="openGastosModal('agregar','income')">+ Agregar ingreso</button>
-      </div>
-      <div class="tx-scroll">
-        <div id="tx-list-income"><div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Evolución mensual</div>
-      <div class="legend">
-        <span class="leg"><span class="leg-dot" style="background:#378ADD"></span>Variables</span>
-        <span class="leg"><span class="leg-dot" style="background:#7F77DD"></span>Fijos</span>
-        <span class="leg"><span class="leg-dot" style="background:#1D9E75"></span>Ingresos</span>
-      </div>
-      <div style="position:relative;height:200px;">
-        <canvas id="barChart" role="img" aria-label="Evolución mensual"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB: AHORROS -->
-  <div id="tab-ahorros" style="display:none;">
-    <div class="card">
-      <div class="card-title">Evolución del ahorro</div>
-      <div class="legend">
-        <span class="leg"><span class="leg-dot" style="background:#7F77DD"></span>ARS</span>
-        <span class="leg"><span class="leg-dot" style="background:#1D9E75"></span>USD (en ARS)</span>
-      </div>
-      <div style="position:relative;height:260px;">
-        <canvas id="lineChart" role="img" aria-label="Evolución del ahorro"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB: INVERSIONES -->
-  <div id="tab-inversiones" style="display:none;">
-    <div class="two-col">
-      <div class="card">
-        <div class="card-title">Cartera Balanz</div>
-        <div id="balanz-detail">
-          <div class="empty-state"><div class="es-icon">📄</div><p>Subí el PDF de Balanz en<br>la sección Importar.</p></div>
-        </div>
-        <button class="btn btn-full" onclick="openInvModal()">+ Actualizar valores manualmente</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Rendimiento mensual</div>
-        <div class="legend"><span class="leg"><span class="leg-dot" style="background:#7F77DD"></span>Portafolio</span></div>
-        <div style="position:relative;height:220px;">
-          <canvas id="invChart" role="img" aria-label="Rendimiento del portafolio"></canvas>
+        <div style="position:relative;height:190px;">
+          <canvas id="barChart" role="img" aria-label="Evolución mensual"></canvas>
         </div>
       </div>
     </div>
@@ -481,125 +442,92 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 
 </div><!-- /container -->
 
-<!-- MODAL: GASTOS -->
-<div class="overlay" id="modal-gastos">
-  <div class="modal" style="width:480px;">
+<!-- MODAL: AGREGAR -->
+<div class="overlay" id="modal-add">
+  <div class="modal" style="width:420px;">
     <div class="modal-header">
-      <h3 id="modal-gastos-title">Gestionar movimientos</h3>
-      <div class="modal-tabs">
-        <button class="modal-tab active" onclick="switchMTab('agregar')">Agregar</button>
-        <button class="modal-tab" onclick="switchMTab('modificar')">Modificar</button>
-        <button class="modal-tab" onclick="switchMTab('eliminar')">Eliminar</button>
-      </div>
+      <h3 id="modal-add-title">Agregar gasto</h3>
     </div>
-
-    <!-- AGREGAR -->
-    <div class="modal-body" id="msubtab-agregar">
-      <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <button id="tipo-gasto-btn" class="btn btn-primary" style="flex:1;" onclick="setTipo('expense')">Gasto</button>
-        <button id="tipo-ingreso-btn" class="btn" style="flex:1;" onclick="setTipo('income')">Ingreso</button>
-      </div>
-      <div class="fg"><label>Descripción</label><input type="text" id="g-desc" placeholder="Ej: almacén, sueldo..."></div>
-      <div class="fg"><label>Monto (ARS)</label><input type="number" id="g-monto" placeholder="0" min="0"></div>
+    <div class="modal-body">
+      <div class="fg"><label>Descripción</label><input type="text" id="add-desc" placeholder="Ej: almacén, sueldo..."></div>
+      <div class="fg"><label>Monto (ARS)</label><input type="number" id="add-monto" placeholder="0" min="0"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="fg"><label>Categoría</label>
-          <select id="g-cat">
-            <option value="comida">Comida</option><option value="transporte">Transporte</option>
-            <option value="servicios">Servicios</option><option value="salud">Salud</option>
-            <option value="entretenimiento">Entretenimiento</option><option value="hobbies">Hobbies</option>
-            <option value="regalos">Regalos</option><option value="vivienda">Vivienda</option>
+          <select id="add-cat">
+            <option value="comida">Comida</option>
+            <option value="transporte">Transporte</option>
+            <option value="servicios">Servicios</option>
+            <option value="salud">Salud</option>
+            <option value="entretenimiento">Entretenimiento</option>
+            <option value="hobbies">Hobbies</option>
+            <option value="regalos">Regalos</option>
+            <option value="vivienda">Vivienda</option>
             <option value="otros">Otros</option>
           </select>
         </div>
         <div class="fg"><label>Medio de pago</label>
-          <select id="g-medio">
-            <option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option>
-            <option value="transferencia">Transferencia</option><option value="mercado_pago">Mercado Pago</option>
+          <select id="add-medio">
+            <option value="efectivo">Efectivo</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="mercado_pago">Mercado Pago</option>
           </select>
         </div>
       </div>
-      <div class="fg"><label>Fecha</label><input type="date" id="g-fecha"></div>
-      <div class="fg" id="g-fijo-wrap" style="display:flex;align-items:center;gap:10px;padding:6px 0;">
-        <input type="checkbox" id="g-fijo" style="width:auto;cursor:pointer;">
-        <label for="g-fijo" style="cursor:pointer;font-size:13px;color:var(--text);">Gasto fijo mensual</label>
+      <div class="fg"><label>Fecha</label><input type="date" id="add-fecha"></div>
+      <div class="fg" id="add-fijo-wrap" style="display:flex;align-items:center;gap:10px;padding:6px 0;">
+        <input type="checkbox" id="add-fijo" style="width:auto;cursor:pointer;">
+        <label for="add-fijo" style="cursor:pointer;font-size:13px;color:var(--text);">Gasto fijo mensual</label>
       </div>
       <div class="btn-row">
-        <button class="btn" onclick="closeModal('modal-gastos')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveGasto()">Agregar</button>
+        <button class="btn" onclick="closeModal('modal-add')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveAdd()">Agregar</button>
       </div>
     </div>
-
-    <!-- MODIFICAR -->
-    <div class="modal-body" id="msubtab-modificar" style="display:none;">
-      <div id="mod-list-view">
-        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;">Tocá un movimiento para editarlo.</p>
-        <div id="mod-tx-list" style="max-height:280px;overflow-y:auto;"></div>
-      </div>
-      <div id="mod-edit-form" style="display:none;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-          <button class="btn btn-sm" onclick="showModList()">← Volver</button>
-          <span style="font-size:13px;font-weight:500;color:var(--text2);" id="mod-edit-title">Editando movimiento</span>
-        </div>
-        <div class="fg"><label>Descripción</label><input type="text" id="mod-desc"></div>
-        <div class="fg"><label>Monto (ARS)</label><input type="number" id="mod-monto" min="0"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="fg"><label>Categoría</label>
-            <select id="mod-cat">
-              <option value="comida">Comida</option><option value="transporte">Transporte</option>
-              <option value="servicios">Servicios</option><option value="salud">Salud</option>
-              <option value="entretenimiento">Entretenimiento</option><option value="hobbies">Hobbies</option>
-              <option value="regalos">Regalos</option><option value="vivienda">Vivienda</option>
-              <option value="income">Ingreso</option><option value="otros">Otros</option>
-            </select>
-          </div>
-          <div class="fg"><label>Medio de pago</label>
-            <select id="mod-medio">
-              <option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option>
-              <option value="transferencia">Transferencia</option><option value="mercado_pago">Mercado Pago</option>
-              <option value="">Sin especificar</option>
-            </select>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="fg"><label>Tipo</label>
-            <select id="mod-type"><option value="expense">Gasto</option><option value="income">Ingreso</option></select>
-          </div>
-          <div class="fg"><label>Fecha</label><input type="date" id="mod-fecha"></div>
-        </div>
-        <div class="fg" id="mod-fijo-wrap" style="display:flex;align-items:center;gap:10px;padding:6px 0;">
-          <input type="checkbox" id="mod-fijo" style="width:auto;cursor:pointer;">
-          <label for="mod-fijo" style="cursor:pointer;font-size:13px;color:var(--text);">Gasto fijo mensual</label>
-        </div>
-        <div class="btn-row">
-          <button class="btn" onclick="showModList()">Cancelar</button>
-          <button class="btn btn-primary" onclick="saveTxEdit()">Guardar cambios</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ELIMINAR -->
-    <div class="modal-body" id="msubtab-eliminar" style="display:none;">
-      <p style="font-size:12px;color:var(--text2);margin-bottom:10px;">Tocá ✕ para eliminar. Te va a pedir confirmación.</p>
-      <div id="del-tx-list" style="max-height:340px;overflow-y:auto;"></div>
-    </div>
-
   </div>
 </div>
 
-<!-- MODAL: INVERSIONES MANUAL -->
-<div class="overlay" id="modal-inv">
-  <div class="modal">
-    <div class="modal-header"><h3 style="padding-bottom:18px;">Actualizar cartera Balanz</h3></div>
+<!-- MODAL: EDITAR -->
+<div class="overlay" id="modal-edit">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <h3 id="modal-edit-title">Editar gasto</h3>
+    </div>
     <div class="modal-body">
-      <div class="fg"><label>Bonos (ARS)</label><input type="number" id="i-bonos" placeholder="0"></div>
-      <div class="fg"><label>Cedears (ARS)</label><input type="number" id="i-cedears" placeholder="0"></div>
-      <div class="fg"><label>Corporativos / ONs (ARS)</label><input type="number" id="i-corp" placeholder="0"></div>
-      <div class="fg"><label>Fondos (ARS)</label><input type="number" id="i-fondos" placeholder="0"></div>
-      <div class="fg"><label>Total en USD</label><input type="number" id="i-usd" placeholder="0"></div>
-      <div class="fg"><label>Tipo de cambio MEP (ARS/USD)</label><input type="number" id="i-tc" placeholder="1409"></div>
+      <input type="hidden" id="edit-id">
+      <input type="hidden" id="edit-kind">
+      <div class="fg"><label>Descripción</label><input type="text" id="edit-desc"></div>
+      <div class="fg"><label>Monto (ARS)</label><input type="number" id="edit-monto" min="0"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="fg"><label>Categoría</label>
+          <select id="edit-cat">
+            <option value="comida">Comida</option>
+            <option value="transporte">Transporte</option>
+            <option value="servicios">Servicios</option>
+            <option value="salud">Salud</option>
+            <option value="entretenimiento">Entretenimiento</option>
+            <option value="hobbies">Hobbies</option>
+            <option value="regalos">Regalos</option>
+            <option value="vivienda">Vivienda</option>
+            <option value="income">Ingreso</option>
+            <option value="otros">Otros</option>
+          </select>
+        </div>
+        <div class="fg"><label>Medio de pago</label>
+          <select id="edit-medio">
+            <option value="efectivo">Efectivo</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="mercado_pago">Mercado Pago</option>
+            <option value="">Sin especificar</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Fecha</label><input type="date" id="edit-fecha"></div>
       <div class="btn-row">
-        <button class="btn" onclick="closeModal('modal-inv')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveInvManual()">Guardar</button>
+        <button class="btn btn-danger" onclick="deleteFromEdit()">Eliminar</button>
+        <button class="btn" onclick="closeModal('modal-edit')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEdit()">Guardar</button>
       </div>
     </div>
   </div>
@@ -931,62 +859,8 @@ function buildBarChart() {
   });
 }
 
-function buildLineChart() {
-  const months = getLast6Months();
-  const arsData = months.map(m=>{
-    const inc = state.transactions.filter(t=>t.type==='income'&&t.month<=m.key).reduce((s,t)=>s+t.amount,0);
-    const exp = state.transactions.filter(t=>t.type==='expense'&&t.month<=m.key).reduce((s,t)=>s+t.amount,0);
-    return Math.max(0,inc-exp);
-  });
-  const usdArs = months.map(()=>Math.round(state.balanz.usd*state.balanz.tc));
 
-  if(charts.line) charts.line.destroy();
-  charts.line = new Chart(document.getElementById('lineChart'),{
-    type:'line',
-    data:{labels:months.map(m=>m.label),datasets:[
-      {label:'ARS',data:arsData,borderColor:'#7F77DD',backgroundColor:'rgba(127,119,221,0.08)',tension:0.4,fill:true,pointRadius:3},
-      {label:'USD en ARS',data:usdArs,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.06)',tension:0.4,fill:true,pointRadius:3}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',font:{size:11},callback:v=>'$'+Math.round(v/1000)+'k'}}}}
-  });
-}
 
-function buildInvChart() {
-  const months = getLast6Months();
-  const totalARS = state.balanz.bonos+state.balanz.cedears+state.balanz.corp+state.balanz.fondos+(state.balanz.usd*state.balanz.tc);
-  const data = months.map((_,i)=>Math.round(totalARS*(0.88+(i*0.025))));
-  data[data.length-1] = Math.round(totalARS);
-
-  if(charts.inv) charts.inv.destroy();
-  charts.inv = new Chart(document.getElementById('invChart'),{
-    type:'line',
-    data:{labels:months.map(m=>m.label),datasets:[
-      {label:'Portafolio',data,borderColor:'#7F77DD',backgroundColor:'rgba(127,119,221,0.1)',tension:0.4,fill:true,pointRadius:3}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#888',font:{size:11}}},y:{ticks:{color:'#888',font:{size:11},callback:v=>'$'+Math.round(v/1000)+'k'}}}}
-  });
-}
-
-function renderBalanzDetail() {
-  const b = state.balanz;
-  const totalARS = b.bonos+b.cedears+b.corp+b.fondos+(b.usd*b.tc);
-  if(!totalARS && !b.usd) {
-    el('balanz-detail').innerHTML='<div class="empty-state"><div class="es-icon">📄</div><p>Subí el PDF de Balanz en<br>la sección Importar.</p></div>';
-    return;
-  }
-  el('balanz-detail').innerHTML=`
-    <div class="inv-row"><span class="inv-label">Bonos</span><span class="inv-value">$${fmt(b.bonos)}</span></div>
-    <div class="inv-row"><span class="inv-label">Cedears</span><span class="inv-value">$${fmt(b.cedears)}</span></div>
-    <div class="inv-row"><span class="inv-label">Corporativos / ONs</span><span class="inv-value">$${fmt(b.corp)}</span></div>
-    <div class="inv-row"><span class="inv-label">Fondos</span><span class="inv-value">$${fmt(b.fondos)}</span></div>
-    <div class="inv-row"><span class="inv-label">Total USD</span><span class="inv-value">U$S ${fmt(b.usd)}</span></div>
-    <div class="inv-row"><span class="inv-label" style="color:var(--text3);font-size:11px;">TC MEP</span><span class="inv-value" style="font-size:11px;color:var(--text3)">$${fmt(b.tc)}</span></div>
-    <div class="inv-total"><span>Total ARS</span><span>$${fmt(Math.round(totalARS))}</span></div>
-    ${b.updated?`<div style="font-size:10px;color:var(--text3);margin-top:6px;">Actualizado ${formatDate(b.updated)}</div>`:''}
-  `;
-}
 
 function refreshAll() {
   updateMetrics();
@@ -1387,46 +1261,17 @@ function addFixed(){
 // ═══════════════════════════════════════════════════
 // MANUAL INV
 // ═══════════════════════════════════════════════════
-function saveInvManual(){
-  state.balanz={
-    bonos:parseInt(el('i-bonos').value)||0,
-    cedears:parseInt(el('i-cedears').value)||0,
-    corp:parseInt(el('i-corp').value)||0,
-    fondos:parseInt(el('i-fondos').value)||0,
-    usd:parseFloat(el('i-usd').value)||0,
-    tc:parseFloat(el('i-tc').value)||1409,
-    updated:new Date().toISOString()
-  };
-  save('balanz');refreshAll();
-  if(window._id)buildInvChart();
-  closeModal('modal-inv');
-  showNotif('Cartera actualizada');
-}
 
 // ═══════════════════════════════════════════════════
 // UI HELPERS
 // ═══════════════════════════════════════════════════
-const tabNames=['gastos','ahorros','inversiones','importar'];
+const tabNames=['gastos','importar'];
 function showTab(name){
-  tabNames.forEach(t=>el('tab-'+t).style.display=t===name?'block':'none');
+  tabNames.forEach(t=>{ const el2=document.getElementById('tab-'+t); if(el2) el2.style.display=t===name?'block':'none'; });
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',tabNames[i]===name));
-  if(name==='ahorros'&&!window._ld){buildLineChart();window._ld=true;}
-  if(name==='inversiones'&&!window._id){buildInvChart();window._id=true;renderBalanzDetail();}
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
-function openInvModal(){openModal('modal-inv');}
-
-function dzDragOver(e,id){e.preventDefault();el(id).classList.add('drag-over');}
-function dzDragLeave(id){el(id).classList.remove('drag-over');}
-function dzDrop(e,type){e.preventDefault();}
-
-function showMsg(id,text,type){
-  const el2=el(id);
-  el2.textContent=text;
-  el2.className='import-msg '+type;
-  el2.style.display='block';
-}
 
 let notifTimer;
 function showNotif(msg){
@@ -1524,53 +1369,55 @@ if('serviceWorker' in navigator) {
 // MODAL GESTIONAR MOVIMIENTOS
 // ═══════════════════════════════════════════════════
 let nextId = Date.now();
-let currentTipo = 'expense';
+// removed-let currentTipo = 'expense';
 let editingItem = null; // {type:'tx'|'fixed', id}
 
-function medioLabel(medio) {
-  return {efectivo:'Efectivo',tarjeta:'Tarjeta',transferencia:'Transferencia',mercado_pago:'Mercado Pago'}[medio] || medio || 'Manual';
-}
 
-function openGastosModal(tab, tipo) {
-  openModal('modal-gastos');
-  switchMTab(tab || 'agregar');
-  if(tipo) setTipo(tipo);
-  else setTipo('expense');
-  document.getElementById('g-fecha').value = new Date().toISOString().split('T')[0];
-  document.getElementById('g-desc').value = '';
-  document.getElementById('g-monto').value = '';
-  document.getElementById('g-fijo').checked = false;
-}
 
-function switchMTab(tab) {
-  ['agregar','modificar','eliminar'].forEach(t => {
-    const el2 = document.getElementById('msubtab-'+t);
-    if(el2) el2.style.display = t===tab ? 'block' : 'none';
-  });
-  document.querySelectorAll('.modal-tab').forEach((e,i) =>
-    e.classList.toggle('active', ['agregar','modificar','eliminar'][i]===tab)
-  );
-  if(tab==='modificar') { renderModList(); showModList(); }
-  if(tab==='eliminar') renderDelList();
-}
 
-function setTipo(tipo) {
-  currentTipo = tipo;
-  const gb = document.getElementById('tipo-gasto-btn');
-  const ib = document.getElementById('tipo-ingreso-btn');
-  const fw = document.getElementById('g-fijo-wrap');
-  if(tipo==='expense') { gb.className='btn btn-primary'; ib.className='btn'; if(fw) fw.style.display='flex'; }
-  else { ib.className='btn btn-primary'; gb.className='btn'; if(fw) fw.style.display='none'; document.getElementById('g-fijo').checked=false; }
-}
 
 // ── AGREGAR ────────────────────────────────────────
-async function saveGasto() {
-  const desc = document.getElementById('g-desc').value.trim();
-  const amount = parseFloat(document.getElementById('g-monto').value)||0;
-  const cat = document.getElementById('g-cat').value;
-  const medio = document.getElementById('g-medio').value;
-  const date = document.getElementById('g-fecha').value || new Date().toISOString().split('T')[0];
-  const esFijo = currentTipo==='expense' && document.getElementById('g-fijo').checked;
+
+// ── MODIFICAR ──────────────────────────────────────
+
+
+
+
+// ── ELIMINAR ───────────────────────────────────────
+
+
+// ── TX LIST RENDER ──────────────────────────────────
+
+
+// ═══════════════════════════════════════════════════
+// MODAL AGREGAR
+// ═══════════════════════════════════════════════════
+let addTipo = 'expense';
+
+function medioLabel(medio) {
+  return {efectivo:'Efectivo',tarjeta:'Tarjeta',transferencia:'Transferencia',mercado_pago:'Mercado Pago'}[medio]||medio||'Manual';
+}
+
+function openAddModal(tipo) {
+  addTipo = tipo || 'expense';
+  const title = document.getElementById('modal-add-title');
+  if(title) title.textContent = addTipo==='income' ? 'Agregar ingreso' : 'Agregar gasto';
+  const fijoWrap = document.getElementById('add-fijo-wrap');
+  if(fijoWrap) fijoWrap.style.display = addTipo==='expense' ? 'flex' : 'none';
+  document.getElementById('add-desc').value = '';
+  document.getElementById('add-monto').value = '';
+  document.getElementById('add-fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('add-fijo').checked = false;
+  openModal('modal-add');
+}
+
+async function saveAdd() {
+  const desc = document.getElementById('add-desc').value.trim();
+  const amount = parseFloat(document.getElementById('add-monto').value)||0;
+  const cat = document.getElementById('add-cat').value;
+  const medio = document.getElementById('add-medio').value;
+  const date = document.getElementById('add-fecha').value || new Date().toISOString().split('T')[0];
+  const esFijo = addTipo==='expense' && document.getElementById('add-fijo').checked;
   if(!desc) { showNotif('Ingresá una descripción'); return; }
   if(!amount) { showNotif('Ingresá un monto'); return; }
   showSavingIndicator('Guardando...');
@@ -1578,190 +1425,101 @@ async function saveGasto() {
     state.fixed.push({id:nextId++, name:desc, amount, cat, medio});
     await save('fixed');
   } else {
-    addTransaction({id:'manual-'+(nextId++), date, desc, amount,
-      type:currentTipo, category:currentTipo==='income'?'income':cat,
-      source:medioLabel(medio), medio});
+    addTransaction({
+      id:'manual-'+(nextId++),
+      date, desc, amount,
+      type: addTipo,
+      category: addTipo==='income' ? 'income' : cat,
+      source: medioLabel(medio),
+      medio
+    });
     await save('transactions');
   }
   hideSavingIndicator();
   refreshAll();
-  closeModal('modal-gastos');
-  showNotif(esFijo?'Gasto fijo agregado':currentTipo==='income'?'Ingreso agregado':'Gasto agregado');
+  closeModal('modal-add');
+  showNotif(esFijo?'Gasto fijo agregado':addTipo==='income'?'Ingreso agregado':'Gasto agregado');
 }
 
-// ── MODIFICAR ──────────────────────────────────────
-function renderModList() {
-  const c = document.getElementById('mod-tx-list');
-  if(!c) return;
-  const fixedRows = state.fixed.map(f => `
-    <div class="tx-row" style="cursor:pointer;" onclick="openEditForm('fixed','${f.id}')">
-      <div class="tx-icon">🔒</div>
-      <div class="tx-info">
-        <div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span></div>
-        <div class="tx-meta">${f.cat} · ${medioLabel(f.medio)}</div>
-      </div>
-      <div class="tx-right">
-        <div class="tx-amount neg">−$${fmt(f.amount)}</div>
-      </div>
-    </div>`);
-  const txRows = [...state.transactions]
-    .sort((a,b)=>new Date(b.date)-new Date(a.date))
-    .map(t => {
-      const icon = catIcon[t.category]||'💳';
-      const badge = catBadge[t.category]||'b-fixed';
-      const sign = t.type==='income'?'+':'−';
-      const col = t.type==='income'?'pos':'neg';
-      return `<div class="tx-row" style="cursor:pointer;" onclick="openEditForm('tx','${t.id}')">
-        <div class="tx-icon">${icon}</div>
-        <div class="tx-info">
-          <div class="tx-desc">${t.desc||'Movimiento'}</div>
-          <div class="tx-meta">${formatDate(t.date)} · ${t.source||'Manual'} <span class="badge ${badge}">${t.category||'otros'}</span></div>
-        </div>
-        <div class="tx-right">
-          <div class="tx-amount ${col}">${sign}$${fmt(t.amount)}</div>
-        </div>
-      </div>`;
-    });
-  let html2 = '';
-  if(fixedRows.length) html2 += `<div style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 8px;">Gastos fijos</div>${fixedRows.join('')}`;
-  if(txRows.length) html2 += `<div style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:10px 0 8px;">Movimientos</div>${txRows.join('')}`;
-  if(!html2) html2 = '<div class="empty-state"><div class="es-icon">📭</div><p>No hay movimientos.</p></div>';
-  c.innerHTML = html2;
-}
-
-function showModList() {
-  document.getElementById('mod-list-view').style.display = 'block';
-  document.getElementById('mod-edit-form').style.display = 'none';
-  editingItem = null;
-}
-
-function openEditForm(type, id) {
-  editingItem = {type, id: String(id)};
-  let item;
-  if(type==='fixed') item = state.fixed.find(f=>String(f.id)===String(id));
-  else item = state.transactions.find(t=>String(t.id)===String(id));
-  if(!item) return;
-  document.getElementById('mod-edit-title').textContent = type==='fixed' ? `Editando: ${item.name}` : `Editando: ${item.desc||'Movimiento'}`;
-  document.getElementById('mod-desc').value = type==='fixed' ? item.name : (item.desc||'');
-  document.getElementById('mod-monto').value = item.amount||0;
-  document.getElementById('mod-cat').value = type==='fixed' ? (item.cat||'otros') : (item.category||'otros');
-  document.getElementById('mod-medio').value = item.medio||'';
-  document.getElementById('mod-type').value = type==='fixed' ? 'expense' : (item.type||'expense');
-  document.getElementById('mod-fecha').value = type==='fixed' ? '' : (item.date||'');
-  document.getElementById('mod-fijo').checked = type==='fixed';
-  document.getElementById('mod-fijo-wrap').style.display = 'flex';
-  document.getElementById('mod-list-view').style.display = 'none';
-  document.getElementById('mod-edit-form').style.display = 'block';
-}
-
-async function saveTxEdit() {
-  if(!editingItem) return;
-  const {type, id} = editingItem;
-  const desc = document.getElementById('mod-desc').value.trim();
-  const amount = parseFloat(document.getElementById('mod-monto').value)||0;
-  const cat = document.getElementById('mod-cat').value;
-  const medio = document.getElementById('mod-medio').value;
-  const txType = document.getElementById('mod-type').value;
-  const date = document.getElementById('mod-fecha').value;
-  const nowFijo = document.getElementById('mod-fijo').checked;
-
-  if(!confirm(`¿Guardás los cambios en "${desc}"?`)) return;
-
+// ═══════════════════════════════════════════════════
+// MODAL EDITAR (abre al hacer click en un movimiento)
+// ═══════════════════════════════════════════════════
+function openEditModal(type, id) {
+  let item, isFixed = false;
   if(type==='fixed') {
-    showSavingIndicator('Guardando...');
-    if(nowFijo) {
-      const f = state.fixed.find(x=>String(x.id)===id);
-      if(f) { f.name=desc||f.name; f.amount=amount||f.amount; f.cat=cat; f.medio=medio; }
-      await save('fixed');
-    } else {
-      state.fixed = state.fixed.filter(f=>String(f.id)!==id);
-      await deleteFromDB('fixed', id);
-      addTransaction({id:'manual-'+(nextId++), date:date||new Date().toISOString().split('T')[0],
-        desc, amount, type:txType, category:cat, source:medioLabel(medio), medio});
-      await save('fixed'); await save('transactions');
-    }
+    item = state.fixed.find(f=>String(f.id)===String(id));
+    isFixed = true;
   } else {
-    showSavingIndicator('Guardando...');
-    if(nowFijo) {
-      state.transactions = state.transactions.filter(t=>String(t.id)!==id);
-      await deleteFromDB('transactions', id);
-      state.fixed.push({id:nextId++, name:desc, amount, cat, medio});
-      await save('transactions'); await save('fixed');
-    } else {
-      const tx = state.transactions.find(t=>String(t.id)===id);
-      if(tx) {
-        tx.desc=desc||tx.desc; tx.amount=amount||tx.amount; tx.category=cat;
-        tx.medio=medio; tx.type=txType; tx.source=medioLabel(medio);
-        if(date) { tx.date=date; const d=new Date(date); tx.month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
-      }
-      await save('transactions');
+    item = state.transactions.find(t=>String(t.id)===String(id));
+  }
+  if(!item) return;
+
+  const isIncome = !isFixed && item.type==='income';
+  const title = document.getElementById('modal-edit-title');
+  if(title) title.textContent = isFixed ? 'Editar gasto fijo' : isIncome ? 'Editar ingreso' : 'Editar gasto';
+
+  document.getElementById('edit-id').value = String(id);
+  document.getElementById('edit-kind').value = type;
+  document.getElementById('edit-desc').value = isFixed ? item.name : (item.desc||'');
+  document.getElementById('edit-monto').value = item.amount||0;
+  document.getElementById('edit-cat').value = isFixed ? (item.cat||'otros') : (item.category||'otros');
+  document.getElementById('edit-medio').value = item.medio||'';
+  document.getElementById('edit-fecha').value = isFixed ? '' : (item.date||'');
+  openModal('modal-edit');
+}
+
+async function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const kind = document.getElementById('edit-kind').value;
+  const desc = document.getElementById('edit-desc').value.trim();
+  const amount = parseFloat(document.getElementById('edit-monto').value)||0;
+  const cat = document.getElementById('edit-cat').value;
+  const medio = document.getElementById('edit-medio').value;
+  const date = document.getElementById('edit-fecha').value;
+  if(!desc) { showNotif('Ingresá una descripción'); return; }
+  if(!confirm(`¿Guardás los cambios en "${desc}"?`)) return;
+  showSavingIndicator('Guardando...');
+  if(kind==='fixed') {
+    const f = state.fixed.find(x=>String(x.id)===id);
+    if(f) { f.name=desc; f.amount=amount; f.cat=cat; f.medio=medio; }
+    await save('fixed');
+  } else {
+    const tx = state.transactions.find(t=>String(t.id)===id);
+    if(tx) {
+      tx.desc=desc; tx.amount=amount; tx.category=cat; tx.medio=medio;
+      tx.source=medioLabel(medio);
+      if(date) { tx.date=date; const d=new Date(date); tx.month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
     }
+    await save('transactions');
   }
   hideSavingIndicator();
   refreshAll();
-  renderModList();
-  showModList();
-  showNotif('Movimiento actualizado');
+  closeModal('modal-edit');
+  showNotif('Actualizado');
 }
 
-// ── ELIMINAR ───────────────────────────────────────
-function renderDelList() {
-  const c = document.getElementById('del-tx-list');
-  if(!c) return;
-  const fixedRows = state.fixed.map(f => `
-    <div class="tx-row">
-      <div class="tx-icon">🔒</div>
-      <div class="tx-info">
-        <div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span></div>
-        <div class="tx-meta">${f.cat}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--red);">−$${fmt(f.amount)}</span>
-        <button onclick="deleteTx('fixed','${f.id}')" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid #f0cece;background:transparent;color:var(--red);cursor:pointer;">✕</button>
-      </div>
-    </div>`);
-  const txRows = [...state.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t => {
-    const sign = t.type==='income'?'+':'−';
-    const col = t.type==='income'?'var(--green)':'var(--red)';
-    return `<div class="tx-row">
-      <div class="tx-icon">${catIcon[t.category]||'💳'}</div>
-      <div class="tx-info">
-        <div class="tx-desc">${t.desc||'Movimiento'}</div>
-        <div class="tx-meta">${formatDate(t.date)} · ${t.source||'Manual'}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:${col};">${sign}$${fmt(t.amount)}</span>
-        <button onclick="deleteTx('tx','${t.id}')" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid #f0cece;background:transparent;color:var(--red);cursor:pointer;">✕</button>
-      </div>
-    </div>`;
-  });
-  let html2 = '';
-  if(fixedRows.length) html2 += `<div style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:4px 0 8px;">Gastos fijos</div>${fixedRows.join('')}`;
-  if(txRows.length) html2 += `<div style="font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:10px 0 8px;">Movimientos</div>${txRows.join('')}`;
-  if(!html2) html2 = '<div class="empty-state"><div class="es-icon">📭</div><p>No hay movimientos.</p></div>';
-  c.innerHTML = html2;
-}
-
-async function deleteTx(type, id) {
-  const name = type==='fixed'
-    ? (state.fixed.find(f=>String(f.id)===String(id))||{}).name
-    : (state.transactions.find(t=>String(t.id)===String(id))||{}).desc;
-  if(!confirm(`¿Eliminás "${name||'este movimiento'}"? Esta acción no se puede deshacer.`)) return;
+async function deleteFromEdit() {
+  const id = document.getElementById('edit-id').value;
+  const kind = document.getElementById('edit-kind').value;
+  const desc = document.getElementById('edit-desc').value||'este movimiento';
+  if(!confirm(`¿Eliminás "${desc}"? Esta acción no se puede deshacer.`)) return;
   showSavingIndicator('Eliminando...');
-  if(type==='fixed') {
-    state.fixed = state.fixed.filter(f=>String(f.id)!==String(id));
+  if(kind==='fixed') {
+    state.fixed = state.fixed.filter(f=>String(f.id)!==id);
     await deleteFromDB('fixed', id);
   } else {
-    state.transactions = state.transactions.filter(t=>String(t.id)!==String(id));
+    state.transactions = state.transactions.filter(t=>String(t.id)!==id);
     await deleteFromDB('transactions', id);
   }
   hideSavingIndicator();
   refreshAll();
-  renderDelList();
+  closeModal('modal-edit');
   showNotif('Eliminado');
 }
 
-// ── TX LIST RENDER ──────────────────────────────────
+// ═══════════════════════════════════════════════════
+// TX LIST RENDER
+// ═══════════════════════════════════════════════════
 function renderTxList() {
   const expenseList = document.getElementById('tx-list-expense');
   const incomeList = document.getElementById('tx-list-income');
@@ -1771,12 +1529,13 @@ function renderTxList() {
   const expenses = sorted.filter(t=>t.type==='expense');
   const incomes  = sorted.filter(t=>t.type==='income');
 
-  const makeRow = t => {
+  const makeRow = (t, type) => {
     const icon = catIcon[t.category]||catIcon.unknown;
     const badge = catBadge[t.category]||catBadge.unknown;
-    const sign = t.type==='income'?'+':'−';
-    const col = t.type==='income'?'pos':'neg';
-    return `<div class="tx-row">
+    const sign = type==='income'?'+':'−';
+    const col = type==='income'?'pos':'neg';
+    const id = String(t.id);
+    return `<div class="tx-row" style="cursor:pointer;" onclick="openEditModal('tx','${id}')">
       <div class="tx-icon">${icon}</div>
       <div class="tx-info">
         <div class="tx-desc">${t.desc||'Movimiento'}</div>
@@ -1789,23 +1548,21 @@ function renderTxList() {
     </div>`;
   };
 
-  // Add fixed expenses to expense list
   const fixedRows = state.fixed.map(f => `
-    <div class="tx-row">
+    <div class="tx-row" style="cursor:pointer;" onclick="openEditModal('fixed','${f.id}')">
       <div class="tx-icon">🔒</div>
       <div class="tx-info">
         <div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span></div>
-        <div class="tx-meta">${f.cat}</div>
+        <div class="tx-meta">${f.cat} · mensual</div>
       </div>
       <div class="tx-right">
         <div class="tx-amount neg">−$${fmt(f.amount)}</div>
-        <div class="tx-date-small">mensual</div>
       </div>
     </div>`);
 
-  expenseList.innerHTML = [...fixedRows, ...expenses.map(makeRow)].join('') ||
+  expenseList.innerHTML = [...fixedRows, ...expenses.map(t=>makeRow(t,'expense'))].join('') ||
     '<div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div>';
-  incomeList.innerHTML = incomes.map(makeRow).join('') ||
+  incomeList.innerHTML = incomes.map(t=>makeRow(t,'income')).join('') ||
     '<div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div>';
 }
 
