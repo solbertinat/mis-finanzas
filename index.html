@@ -230,15 +230,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .b-cat-transport{background:#E0EDFF;color:#0A3D8F;border:1px solid #90B8F0;}
 .b-cat-services{background:#EDE0FF;color:#3D1A8F;border:1px solid #B090F0;}
 .b-cat-health{background:#FFE0E5;color:#8F0A1E;border:1px solid #F090A0;}
-.b-cat-entertain{background:#E0F5FF;color:#0A5A8F;border:1px solid #70C0F0;}
+.b-cat-entertain{background:#EDE0FF;color:#3D1A8F;border:1px solid #B090F0;}
 .b-cat-hobbies{background:#E0FFE8;color:#0A6B2A;border:1px solid #70D090;}
 .b-cat-regalos{background:#FFE0F5;color:#8F0A6B;border:1px solid #F090D0;}
 .b-cat-vivienda{background:#F5EBD6;color:#5A3800;border:1px solid #C8A060;}
-.b-cat-otros{background:#EBEBEB;color:#444;border:1px solid #CCC;}
+.b-cat-otros{background:#FFF8D0;color:#6B5000;border:1px solid #E0C840;}
 .b-cat-mp{background:#FFF8D6;color:#7A5500;border:1px solid #E0C050;}
 .b-cat-generado{background:#D6FFE8;color:#0A5A2A;border:1px solid #60D090;}
 .b-income{background:#D6F5EB;color:#0A5A3A;border:1px solid #60C0A0;}
-.b-fixed{background:#EBEBEB;color:#444;border:1px solid #CCC;}
+.b-fixed{background:#D8EAFF;color:#0A2E6B;border:1px solid #80AAEE;}
 </style>
 </head>
 <body>
@@ -642,7 +642,17 @@ async function load() {
       supa.get('balanz?id=eq.1'),
       supa.get('saldos?id=eq.1'),
     ]);
-    state.transactions = (txs||[]).map(t => ({...t, desc: t.description, originalId: t.original_id || t.id, incomeType: t.income_type || 'no_generado'}));
+    const rawTxs = (txs||[]).map(t => ({...t, desc: t.description, originalId: t.original_id || t.id, incomeType: t.income_type || 'no_generado'}));
+    // Dedup: remove duplicate fijo mensual entries (keep first)
+    const seenFijoIds = new Set();
+    state.transactions = rawTxs.filter(t => {
+      if(t.source==='Fijo mensual'||t.source==='Ingreso fijo') {
+        const key = t.source+':'+t.desc;
+        if(seenFijoIds.has(key)) return false;
+        seenFijoIds.add(key);
+      }
+      return true;
+    });
     state.fixed        = fixed || [];
     state.incomeFixed  = incomeFixed || [];
     state.balanz       = balanz?.[0] || state.balanz;
@@ -670,7 +680,9 @@ async function save(key) {
       }
     }
     if(key === 'fixed') {
-      // Delete all and re-insert
+      // Deduplicate by name before saving
+      const seenF = new Set();
+      state.fixed = state.fixed.filter(f => { if(seenF.has(f.name)) return false; seenF.add(f.name); return true; });
       await supa.delete('fixed_expenses?id=neq.null');
       if(state.fixed.length) {
         await supa.post('fixed_expenses', state.fixed.map(f => ({
@@ -682,6 +694,11 @@ async function save(key) {
       await supa.upsert('balanz', [{id:1, ...state.balanz}]);
     }
     if(key === 'income_fixed') {
+      const seenInc = new Set();
+      state.incomeFixed = (state.incomeFixed||[]).filter(f => {
+        if(seenInc.has(f.name)) return false;
+        seenInc.add(f.name); return true;
+      });
       await supa.delete('income_fixed?id=neq.null');
       if(state.incomeFixed.length) {
         await supa.post('income_fixed', state.incomeFixed.map(f=>({
@@ -1655,8 +1672,20 @@ async function saveEdit() {
         }
         tx.source=medioLabel(medio)||'Manual';
         await save('fixed'); await save('income_fixed');
+      } else if(esFijo && wasFixed) {
+        // Update the fixed template too
+        tx.source = isIncome ? 'Ingreso fijo' : 'Fijo mensual';
+        if(isIncome) {
+          const f=(state.incomeFixed||[]).find(f=>f.name===tx.desc||f.name===desc);
+          if(f){f.name=desc;f.amount=amount;f.incomeType=incomeType;f.medio=medio;}
+          await save('income_fixed');
+        } else {
+          const f=state.fixed.find(f=>f.name===tx.desc||f.name===desc);
+          if(f){f.name=desc;f.amount=amount;f.cat=cat;f.medio=medio;}
+          await save('fixed');
+        }
       } else {
-        tx.source=esFijo?(isIncome?'Ingreso fijo':'Fijo mensual'):medioLabel(medio)||'Manual';
+        tx.source=medioLabel(medio)||'Manual';
       }
       await save('transactions');
     }
@@ -1746,8 +1775,8 @@ function buildPieChart() {
   const data=labels.map(k=>cats[k]);
   const catColors={
     comida:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',
-    salud:'#E03050',entretenimiento:'#30A0E0',hobbies:'#30C060',
-    regalos:'#E030A0',vivienda:'#C09040',otros:'#999999',fijos:'#BBBBBB'
+    salud:'#E03050',entretenimiento:'#9070E0',hobbies:'#30C060',
+    regalos:'#E030A0',vivienda:'#C09040',otros:'#E0C000',fijos:'#4080D0'
   };
   const colors=labels.map(l=>catColors[l]||'#888888');
   if(charts.pie) charts.pie.destroy();
@@ -1779,17 +1808,41 @@ function buildIncomePieChart() {
 
 function showDisponibleDetail() {
   const d = window._metricsDetail || {};
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const thisTx = state.transactions.filter(t=>t.month===thisMonth);
   const body = document.getElementById('modal-disponible-body');
   if(!body) return;
-  const row = (label, val, col) => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px;">
-    <span style="color:var(--text2);">${label}</span>
-    <span style="font-family:'DM Mono',monospace;font-weight:500;color:${col||'var(--text)'};">$${fmt(val||0)}</span>
-  </div>`;
+
+  const row = (label, val, col, sub) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <div>
+        <div style="color:var(--text2);">${label}</div>
+        ${sub?`<div style="font-size:11px;color:var(--text3);">${sub}</div>`:''}
+      </div>
+      <span style="font-family:'DM Mono',monospace;font-weight:500;color:${col||'var(--text)'};">$${fmt(val||0)}</span>
+    </div>`;
+
+  // Income breakdown
+  const ingNoGen = thisTx.filter(t=>t.type==='income'&&t.incomeType!=='generado');
+  const ingNoGenRows = ingNoGen.map(t=>row('&nbsp;&nbsp;'+t.desc, t.amount, 'var(--green)', formatDate(t.date))).join('');
+  const ingNoGenTotal = ingNoGen.reduce((s,t)=>s+t.amount,0) + (d.incFixedTotal||0);
+
+  // Expense breakdown
+  const expTx = thisTx.filter(t=>t.type==='expense');
+  const expRows = expTx.map(t=>row('&nbsp;&nbsp;'+t.desc, t.amount, 'var(--red)', t.source)).join('');
+  const fixedRows = state.fixed.map(f=>row('&nbsp;&nbsp;'+f.name+' (fijo)', f.amount, 'var(--red)', 'mensual')).join('');
+
   body.innerHTML = `
-    ${row('Ingresos no generados', d.ingNoGenerados, 'var(--green)')}
-    ${row('Gastos variables', (d.gastos||0)-(d.fixedTotal||0), 'var(--red)')}
-    ${row('Gastos fijos', d.fixedTotal||0, 'var(--red)')}
-    <div style="display:flex;justify-content:space-between;padding:12px 0;font-size:15px;font-weight:500;border-top:2px solid var(--border2);margin-top:4px;">
+    <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:8px 0 4px;">Ingresos no generados</div>
+    ${ingNoGenRows}
+    ${(d.incFixedTotal||0)>0?row('&nbsp;&nbsp;Ingresos fijos', d.incFixedTotal, 'var(--green)', 'mensual'):''}
+    ${row('Total ingresos no generados', ingNoGenTotal, 'var(--green)')}
+    <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:12px 0 4px;">Gastos</div>
+    ${d.fixedTotal>0?fixedRows:''}
+    ${expRows}
+    ${row('Total gastos', d.gastos, 'var(--red)')}
+    <div style="display:flex;justify-content:space-between;padding:12px 0 4px;font-size:15px;font-weight:500;border-top:2px solid var(--border2);margin-top:4px;">
       <span>Disponible</span>
       <span style="font-family:'DM Mono',monospace;color:${(d.disponible||0)>=0?'var(--green)':'var(--red)'};">$${fmt(d.disponible||0)}</span>
     </div>
