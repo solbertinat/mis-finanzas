@@ -906,6 +906,7 @@ async function callClaude(base64, mime, systemPrompt) {
     ? {type:'image', source:{type:'base64', media_type:mime, data:base64}}
     : {type:'document', source:{type:'base64', media_type:'application/pdf', data:base64}};
 
+  console.log('Calling Claude API...');
   const resp = await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
@@ -929,6 +930,11 @@ async function callClaude(base64, mime, systemPrompt) {
 
 async function analyzeScreenshot(base64, mime, source) {
   const msgId = 'msg-'+source;
+  const key = getApiKey();
+  if(!key) {
+    showMsg(msgId,'No hay API key configurada. Contactá al desarrollador.','error');
+    return;
+  }
   showMsg(msgId,'Analizando screenshot con IA...','loading');
   el('preview-'+source).style.display='none';
   try {
@@ -961,7 +967,8 @@ Si no podés determinar un campo, usá valores razonables. NO incluyas texto exp
     el('preview-'+source).style.display='block';
     showMsg(msgId,`${txs.length} movimientos detectados. Revisá y confirmá.`,'success');
   } catch(e) {
-    showMsg(msgId,'Error: '+e.message,'error');
+    console.error('analyzeScreenshot error:', e);
+    showMsg(msgId,'Error: '+e.message+' — Verificá la conexión y la API key.','error');
   }
 }
 
