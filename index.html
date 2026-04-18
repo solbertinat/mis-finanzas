@@ -281,6 +281,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div id="tab-gastos">
     <div class="two-col" style="margin-bottom:14px;">
       <div class="card">
+        <div class="card-title">Gastos por categoría</div>
+        <div class="legend" id="pie-legend"></div>
+        <div style="position:relative;height:190px;">
+          <canvas id="pieChart" role="img" aria-label="Gastos por categoría"></canvas>
+        </div>
+      </div>
+      <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
           <div class="card-title" style="margin-bottom:0;">Gastos</div>
           <button class="btn btn-sm" onclick="openAddModal('expense')">+ Agregar gasto</button>
@@ -289,24 +296,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <div id="tx-list-expense"><div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div></div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-title">Gastos por categoría</div>
-        <div class="legend" id="pie-legend"></div>
-        <div style="position:relative;height:190px;">
-          <canvas id="pieChart" role="img" aria-label="Gastos por categoría"></canvas>
-        </div>
-      </div>
     </div>
     <div class="two-col" style="margin-bottom:14px;">
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <div class="card-title" style="margin-bottom:0;">Ingresos</div>
-          <button class="btn btn-sm" onclick="openAddModal('income')">+ Agregar ingreso</button>
-        </div>
-        <div class="tx-scroll">
-          <div id="tx-list-income"><div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div></div>
-        </div>
-      </div>
       <div class="card">
         <div class="card-title">Ingresos por tipo</div>
         <div class="legend">
@@ -315,6 +306,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
         </div>
         <div style="position:relative;height:190px;">
           <canvas id="incomePieChart" role="img" aria-label="Ingresos por tipo"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div class="card-title" style="margin-bottom:0;">Ingresos</div>
+          <button class="btn btn-sm" onclick="openAddModal('income')">+ Agregar ingreso</button>
+        </div>
+        <div class="tx-scroll">
+          <div id="tx-list-income"><div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div></div>
         </div>
       </div>
     </div>
@@ -500,6 +500,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <option value="generado">Generado (trabajo, freelance, etc.)</option>
         </select>
       </div>
+      <div class="fg" id="add-income-fijo-wrap" style="display:none;align-items:center;gap:10px;padding:6px 0;">
+        <input type="checkbox" id="add-income-fijo" style="width:auto;cursor:pointer;">
+        <label for="add-income-fijo" style="cursor:pointer;font-size:13px;color:var(--text);">Ingreso fijo mensual</label>
+      </div>
       <div class="btn-row">
         <button class="btn" onclick="closeModal('modal-add')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveAdd()">Agregar</button>
@@ -600,6 +604,7 @@ const supa = {
 let state = {
   transactions: [],
   fixed:        [],
+  incomeFixed:  [],
   balanz: {bonos:0,cedears:0,corp:0,fondos:0,usd:0,tc:1409,updated:null},
   saldos: {ars:0,usd:0,updated:null},
 };
@@ -611,14 +616,16 @@ let saving = false;
 async function load() {
   try {
     showSavingIndicator('Cargando...');
-    const [txs, fixed, balanz, saldos] = await Promise.all([
+    const [txs, fixed, incomeFixed, balanz, saldos] = await Promise.all([
       supa.get('transactions?order=date.desc'),
       supa.get('fixed_expenses'),
+      supa.get('income_fixed'),
       supa.get('balanz?id=eq.1'),
       supa.get('saldos?id=eq.1'),
     ]);
     state.transactions = (txs||[]).map(t => ({...t, desc: t.description, originalId: t.original_id || t.id, incomeType: t.income_type || 'no_generado'}));
     state.fixed        = fixed || [];
+    state.incomeFixed  = incomeFixed || [];
     state.balanz       = balanz?.[0] || state.balanz;
     state.saldos       = saldos?.[0] || state.saldos;
     hideSavingIndicator();
@@ -654,6 +661,15 @@ async function save(key) {
     }
     if(key === 'balanz') {
       await supa.upsert('balanz', [{id:1, ...state.balanz}]);
+    }
+    if(key === 'income_fixed') {
+      await supa.delete('income_fixed?id=neq.null');
+      if(state.incomeFixed.length) {
+        await supa.post('income_fixed', state.incomeFixed.map(f=>({
+          id: String(f.id), name: f.name, amount: f.amount,
+          income_type: f.incomeType||'no_generado', medio: f.medio||''
+        })));
+      }
     }
     if(key === 'saldos') {
       await supa.upsert('saldos', [{id:1, ...state.saldos}]);
@@ -804,6 +820,7 @@ function filterByCategory(cat) {
 function buildBarChart() {
   const months = getLast6Months();
   const fixedTotal = state.fixed.reduce((s,f)=>s+f.amount,0);
+  const incomeFixedTotal = (state.incomeFixed||[]).reduce((s,f)=>s+f.amount,0);
   const varData = months.map(m=>state.transactions.filter(t=>t.type==='expense'&&t.month===m.key).reduce((s,t)=>s+t.amount,0));
   const fixData = months.map(()=>fixedTotal);
   const incData = months.map(m=>state.transactions.filter(t=>t.type==='income'&&t.month===m.key).reduce((s,t)=>s+t.amount,0));
@@ -1386,6 +1403,7 @@ function updateMetrics() {
   const thisTx = state.transactions.filter(t=>t.month===thisMonth);
   const lastTx = state.transactions.filter(t=>t.month===lastMonth);
   const fixedTotal = state.fixed.reduce((s,f)=>s+f.amount,0);
+  const incomeFixedTotal = (state.incomeFixed||[]).reduce((s,f)=>s+f.amount,0);
 
   const gastos = thisTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0) + fixedTotal;
   const ingGenerados = thisTx.filter(t=>t.type==='income'&&t.incomeType==='generado').reduce((s,t)=>s+t.amount,0);
@@ -1461,12 +1479,15 @@ function openAddModal(tipo) {
   document.getElementById('modal-add-title').textContent = addTipo==='income'?'Agregar ingreso':'Agregar gasto';
   const fijoWrap = document.getElementById('add-fijo-wrap');
   const incTypeWrap = document.getElementById('add-income-type-wrap');
+  const incFijoWrap = document.getElementById('add-income-fijo-wrap');
   if(fijoWrap) fijoWrap.style.display = addTipo==='expense'?'flex':'none';
   if(incTypeWrap) incTypeWrap.style.display = addTipo==='income'?'block':'none';
+  if(incFijoWrap) incFijoWrap.style.display = addTipo==='income'?'flex':'none';
   document.getElementById('add-desc').value='';
   document.getElementById('add-monto').value='';
   document.getElementById('add-fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('add-fijo').checked=false;
+  if(document.getElementById('add-income-fijo')) document.getElementById('add-income-fijo').checked=false;
   openModal('modal-add');
 }
 
@@ -1477,30 +1498,30 @@ async function saveAdd() {
   const cat = document.getElementById('add-cat').value;
   const medio = document.getElementById('add-medio').value;
   const date = document.getElementById('add-fecha').value||new Date().toISOString().split('T')[0];
-  const esFijo = addTipo==='expense' && document.getElementById('add-fijo').checked;
+  const esFijoGasto = addTipo==='expense' && document.getElementById('add-fijo').checked;
+  const esFijoIngreso = addTipo==='income' && document.getElementById('add-income-fijo').checked;
   const incomeType = addTipo==='income' ? (document.getElementById('add-income-type').value||'no_generado') : '';
   if(!desc){showNotif('Ingresá una descripción');return;}
   if(!amount){showNotif('Ingresá un monto');return;}
   _saving=true;
   closeModal('modal-add');
   showSavingIndicator('Guardando...');
-  if(esFijo){
+  if(esFijoGasto){
     state.fixed.push({id:nextId++,name:desc,amount,cat,medio});
     await save('fixed');
+  } else if(esFijoIngreso){
+    state.incomeFixed.push({id:nextId++,name:desc,amount,incomeType,medio});
+    await save('income_fixed');
   } else {
-    addTransaction({
-      id:'manual-'+(nextId++), date, desc, amount,
-      type:addTipo,
-      category:addTipo==='income'?'income':cat,
-      source:medioLabel(medio), medio,
-      incomeType
-    });
+    addTransaction({id:'manual-'+(nextId++),date,desc,amount,
+      type:addTipo, category:addTipo==='income'?'income':cat,
+      source:medioLabel(medio), medio, incomeType});
     await save('transactions');
   }
   hideSavingIndicator();
   refreshAll();
   _saving=false;
-  showNotif(esFijo?'Gasto fijo agregado':addTipo==='income'?'Ingreso agregado':'Gasto agregado');
+  showNotif(esFijoGasto?'Gasto fijo agregado':esFijoIngreso?'Ingreso fijo agregado':addTipo==='income'?'Ingreso agregado':'Gasto agregado');
 }
 
 // ═══════════════════════════════════════════════════
@@ -1509,22 +1530,23 @@ async function saveAdd() {
 let _editSaving = false;
 
 function openEditModal(type, id) {
-  let item; const isFixed = type==='fixed';
+  let item; const isFixed = type==='fixed'; const isIncomeFixed = type==='income_fixed';
   if(isFixed) item=state.fixed.find(f=>String(f.id)===String(id));
+  else if(isIncomeFixed) item=(state.incomeFixed||[]).find(f=>String(f.id)===String(id));
   else item=state.transactions.find(t=>String(t.id)===String(id));
   if(!item) return;
-  const isIncome = !isFixed && item.type==='income';
-  document.getElementById('modal-edit-title').textContent = isFixed?'Editar gasto fijo':isIncome?'Editar ingreso':'Editar gasto';
+  const isIncome = isIncomeFixed || (!isFixed && item.type==='income');
+  document.getElementById('modal-edit-title').textContent = isIncomeFixed?'Editar ingreso fijo':isFixed?'Editar gasto fijo':isIncome?'Editar ingreso':'Editar gasto';
   document.getElementById('edit-id').value=String(id);
   document.getElementById('edit-kind').value=type;
-  document.getElementById('edit-desc').value=isFixed?item.name:(item.desc||'');
+  document.getElementById('edit-desc').value=isFixed||isIncomeFixed?item.name:(item.desc||'');
   document.getElementById('edit-monto').value=item.amount||0;
-  document.getElementById('edit-cat').value=isFixed?(item.cat||'otros'):(item.category||'otros');
+  document.getElementById('edit-cat').value=isFixed?(item.cat||'otros'):isIncomeFixed?'income':(item.category||'otros');
   document.getElementById('edit-medio').value=item.medio||'';
-  document.getElementById('edit-fecha').value=isFixed?'':(item.date||'');
-  const incTypeWrap = document.getElementById('edit-income-type-wrap');
-  if(incTypeWrap) incTypeWrap.style.display = isIncome?'block':'none';
-  if(isIncome) document.getElementById('edit-income-type').value = item.incomeType||'no_generado';
+  document.getElementById('edit-fecha').value=isFixed||isIncomeFixed?'':(item.date||'');
+  const incTypeWrap=document.getElementById('edit-income-type-wrap');
+  if(incTypeWrap) incTypeWrap.style.display=isIncome?'block':'none';
+  if(isIncome) document.getElementById('edit-income-type').value=item.incomeType||'no_generado';
   openModal('modal-edit');
 }
 
@@ -1538,7 +1560,7 @@ async function saveEdit() {
   const medio=document.getElementById('edit-medio').value;
   const date=document.getElementById('edit-fecha').value;
   const incTypeWrap=document.getElementById('edit-income-type-wrap');
-  const incomeType = incTypeWrap&&incTypeWrap.style.display!=='none' ? document.getElementById('edit-income-type').value : '';
+  const incomeType=incTypeWrap&&incTypeWrap.style.display!=='none'?document.getElementById('edit-income-type').value:'';
   if(!desc){showNotif('Ingresá una descripción');return;}
   if(!confirm(`¿Guardás los cambios en "${desc}"?`)) return;
   _editSaving=true;
@@ -1548,6 +1570,10 @@ async function saveEdit() {
     const f=state.fixed.find(x=>String(x.id)===id);
     if(f){f.name=desc;f.amount=amount;f.cat=cat;f.medio=medio;}
     await save('fixed');
+  } else if(kind==='income_fixed'){
+    const f=(state.incomeFixed||[]).find(x=>String(x.id)===id);
+    if(f){f.name=desc;f.amount=amount;f.incomeType=incomeType;f.medio=medio;}
+    await save('income_fixed');
   } else {
     const tx=state.transactions.find(t=>String(t.id)===id);
     if(tx){
@@ -1575,6 +1601,9 @@ async function deleteFromEdit() {
   if(kind==='fixed'){
     state.fixed=state.fixed.filter(f=>String(f.id)!==id);
     await deleteFromDB('fixed',id);
+  } else if(kind==='income_fixed'){
+    state.incomeFixed=(state.incomeFixed||[]).filter(f=>String(f.id)!==id);
+    await supa.delete(`income_fixed?id=eq.${id}`);
   } else {
     state.transactions=state.transactions.filter(t=>String(t.id)!==id);
     await deleteFromDB('transactions',id);
@@ -1613,6 +1642,13 @@ function renderTxList() {
       </div>
     </div>`;
   };
+  const incomeFixedRows=(state.incomeFixed||[]).map(f=>`
+    <div class="tx-row" style="cursor:pointer;" onclick="openEditModal('income_fixed','${f.id}')">
+      <div class="tx-icon">🔒</div>
+      <div class="tx-info"><div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span>${f.incomeType==='generado'?'<span class="badge b-income" style="margin-left:4px;">generado</span>':''}</div>
+      <div class="tx-meta">Ingreso fijo · mensual</div></div>
+      <div class="tx-right"><div class="tx-amount pos">+$${fmt(f.amount)}</div></div>
+    </div>`);
   const fixedRows=state.fixed.map(f=>`
     <div class="tx-row" style="cursor:pointer;" onclick="openEditModal('fixed','${f.id}')">
       <div class="tx-icon">🔒</div>
@@ -1622,7 +1658,7 @@ function renderTxList() {
     </div>`);
   expenseList.innerHTML=[...fixedRows,...expenses.map(t=>makeRow(t,'expense'))].join('')||
     '<div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div>';
-  incomeList.innerHTML=incomes.map(t=>makeRow(t,'income')).join('')||
+  incomeList.innerHTML=[...incomeFixedRows,...incomes.map(t=>makeRow(t,'income'))].join('')||
     '<div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div>';
 }
 
@@ -1667,41 +1703,43 @@ function buildIncomePieChart() {
 // INIT
 // ═══════════════════════════════════════════════════
 async function applyFixedExpenses() {
-  if(!state.fixed.length) return;
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const firstDay = `${thisMonth}-01`;
-
-  // Check if fixed expenses for this month already exist
-  const alreadyApplied = state.transactions.some(t =>
-    t.month === thisMonth && t.source === 'Fijo mensual'
-  );
-  if(alreadyApplied) return;
-
-  // Create a transaction for each fixed expense
   let added = false;
-  for(const f of state.fixed) {
-    const id = `fixed-auto-${thisMonth}-${f.id}`;
-    // Double check this specific fixed expense isn't already there
-    if(state.transactions.find(t => t.id === id)) continue;
-    addTransaction({
-      id,
-      originalId: id,
-      date: firstDay,
-      desc: f.name,
-      amount: f.amount,
-      type: 'expense',
-      category: f.cat || 'otros',
-      source: 'Fijo mensual',
-      medio: f.medio || '',
-      month: thisMonth
-    });
-    added = true;
+
+  // Apply expense fixed
+  if(state.fixed.length) {
+    const expAlreadyApplied = state.transactions.some(t=>t.month===thisMonth&&t.source==='Fijo mensual');
+    if(!expAlreadyApplied) {
+      for(const f of state.fixed) {
+        const id = `fixed-auto-${thisMonth}-${f.id}`;
+        if(state.transactions.find(t=>t.id===id)) continue;
+        addTransaction({id, originalId:id, date:firstDay, desc:f.name, amount:f.amount,
+          type:'expense', category:f.cat||'otros', source:'Fijo mensual', medio:f.medio||'', month:thisMonth});
+        added = true;
+      }
+    }
+  }
+
+  // Apply income fixed
+  if(state.incomeFixed.length) {
+    const incAlreadyApplied = state.transactions.some(t=>t.month===thisMonth&&t.source==='Ingreso fijo');
+    if(!incAlreadyApplied) {
+      for(const f of state.incomeFixed) {
+        const id = `income-fixed-auto-${thisMonth}-${f.id}`;
+        if(state.transactions.find(t=>t.id===id)) continue;
+        addTransaction({id, originalId:id, date:firstDay, desc:f.name, amount:f.amount,
+          type:'income', category:'income', source:'Ingreso fijo',
+          incomeType:f.incomeType||'no_generado', medio:f.medio||'', month:thisMonth});
+        added = true;
+      }
+    }
   }
 
   if(added) {
     await save('transactions');
-    showNotif('Gastos fijos aplicados para ' + now.toLocaleDateString('es-AR',{month:'long',year:'numeric'}));
+    showNotif('Gastos/ingresos fijos aplicados para ' + now.toLocaleDateString('es-AR',{month:'long',year:'numeric'}));
   }
 }
 
