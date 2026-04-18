@@ -246,7 +246,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   </div>
   <div class="topbar-right">
     <span class="topbar-date" id="topbar-date"></span>
-    <button class="api-key-btn" id="api-key-btn" onclick="toggleApiSetup()">⚡ IA</button>
     <span id="save-indicator" style="font-size:11px;color:var(--green);opacity:0;transition:opacity 0.3s;font-family:'DM Mono',monospace;"></span>
     <label class="api-key-btn" style="cursor:pointer;" title="Importar backup">
       ↑ Importar
@@ -256,16 +255,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   </div>
 </div>
 
-<div id="api-setup" style="display:none;background:var(--blue-bg);border:1px solid #b8d0f0;border-radius:var(--r);padding:12px 16px;margin:12px 20px 0 20px;">
-  <p style="font-size:12px;color:var(--blue);line-height:1.6;margin-bottom:10px;">
-    Ingresá tu API key de Anthropic para analizar screenshots con IA. Se guarda en este navegador — solo necesitás hacerlo una vez por dispositivo.<br>
-    Conseguila en <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue);font-weight:500;">console.anthropic.com</a>
-  </p>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input type="password" id="api-key-input" placeholder="sk-ant-..." style="flex:1;min-width:200px;padding:7px 11px;border:1px solid #b8d0f0;border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface);">
-    <button class="btn btn-primary" onclick="saveApiKey()" style="font-size:12px;">Guardar</button>
-    <button class="btn" onclick="clearApiKey()" style="font-size:12px;">Borrar</button>
-  </div>
 </div>
 <div class="container">
 
@@ -297,8 +286,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div class="tabs-wrap">
     <div class="tabs">
       <button class="tab active" onclick="showTab('gastos')">Gastos</button>
-          <button class="tab" onclick="showTab('importar')">Importar</button>
-    </div>
+          </div>
   </div>
 
   <!-- TAB: GASTOS -->
@@ -355,132 +343,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     </div>
   </div>
 
-  <!-- TAB: IMPORTAR -->
-  <div id="tab-importar" style="display:none;">
-    <div class="two-col" style="margin-bottom:14px;">
-
-      <!-- MP SCREENSHOT -->
-      <div class="card">
-        <div class="card-title">Mercado Pago — screenshot IA</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
-          Sacá un screenshot de tu actividad en MP y subilo. La IA extrae los movimientos automáticamente.
-          <br><span style="color:var(--text3)">Requiere API key de Anthropic configurada arriba.</span>
-        </p>
-        <div class="drop-zone" id="dz-screenshot" ondragover="dzDragOver(event,'dz-screenshot')" ondragleave="dzDragLeave('dz-screenshot')" ondrop="dzDrop(event,'screenshot')">
-          <input type="file" accept="image/*" onchange="handleScreenshot(event)">
-          <div class="drop-icon">📷</div>
-          <div style="font-weight:500;margin-bottom:3px;">Subir screenshot</div>
-          <div style="font-size:11px;color:var(--text3)">PNG, JPG — arrastrá o hacé clic</div>
-        </div>
-        <div class="screenshot-preview" id="screenshot-preview">
-          <img id="screenshot-img" src="" alt="preview">
-        </div>
-        <div class="import-msg" id="msg-screenshot"></div>
-        <div class="preview-wrap" id="preview-screenshot">
-          <div class="preview-title">Movimientos detectados</div>
-          <table class="preview-table"><thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th><th>Tipo</th></tr></thead>
-          <tbody id="preview-screenshot-body"></tbody></table>
-          <div class="preview-confirm">
-            <button class="btn" onclick="cancelPreview('screenshot')">Cancelar</button>
-            <button class="btn btn-primary" onclick="confirmImport('screenshot')">Importar todos</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- MP CSV -->
-      <div class="card">
-        <div class="card-title">Mercado Pago — CSV</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
-          Exportá el CSV desde MP Web → Actividad → Descargar.
-          Columnas: <code style="font-family:'DM Mono',monospace;font-size:11px;">TRANSACTION_DATE, REAL_AMOUNT, BUSINESS_UNIT, PAYMENT_METHOD</code>
-        </p>
-        <div class="drop-zone" id="dz-mpcsv" ondragover="dzDragOver(event,'dz-mpcsv')" ondragleave="dzDragLeave('dz-mpcsv')" ondrop="dzDrop(event,'mpcsv')">
-          <input type="file" accept=".csv,.xls,.xlsx" onchange="handleMpCsv(event)">
-          <div class="drop-icon">📊</div>
-          <div style="font-weight:500;margin-bottom:3px;">Subir CSV de Mercado Pago</div>
-          <div style="font-size:11px;color:var(--text3)">CSV — arrastrá o hacé clic</div>
-        </div>
-        <div class="import-msg" id="msg-mpcsv"></div>
-        <div class="preview-wrap" id="preview-mpcsv">
-          <div class="preview-title">Movimientos detectados</div>
-          <table class="preview-table"><thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th><th>Medio</th></tr></thead>
-          <tbody id="preview-mpcsv-body"></tbody></table>
-          <div class="preview-confirm">
-            <button class="btn" onclick="cancelPreview('mpcsv')">Cancelar</button>
-            <button class="btn btn-primary" onclick="confirmImport('mpcsv')">Importar todos</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-    <div class="two-col">
-
-      <!-- BALANZ PDF -->
-      <div class="card">
-        <div class="card-title">Balanz — posición consolidada</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
-          Subí el PDF "Posición consolidada por concertación" de Balanz. La IA lee los valores de cada instrumento y el tipo de cambio MEP.
-          <br><span style="color:var(--text3)">Requiere API key.</span>
-        </p>
-        <div class="drop-zone" id="dz-balanz" ondragover="dzDragOver(event,'dz-balanz')" ondragleave="dzDragLeave('dz-balanz')" ondrop="dzDrop(event,'balanz')">
-          <input type="file" accept=".pdf,image/*" onchange="handleBalanz(event)">
-          <div class="drop-icon">📑</div>
-          <div style="font-weight:500;margin-bottom:3px;">Subir PDF o screenshot de Balanz</div>
-          <div style="font-size:11px;color:var(--text3)">PDF, PNG, JPG</div>
-        </div>
-        <div class="import-msg" id="msg-balanz"></div>
-        <div class="preview-wrap" id="preview-balanz">
-          <div class="preview-title">Cartera detectada</div>
-          <table class="preview-table"><thead><tr><th>Instrumento</th><th>Moneda</th><th>Valor</th></tr></thead>
-          <tbody id="preview-balanz-body"></tbody></table>
-          <div class="preview-confirm">
-            <button class="btn" onclick="cancelPreview('balanz')">Cancelar</button>
-            <button class="btn btn-primary" onclick="confirmImport('balanz')">Actualizar cartera</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- SANTANDER -->
-      <div class="card">
-        <div class="card-title">Santander — saldos</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
-          Subí el Excel o screenshot del resumen de cuentas de Santander. Se actualizan los saldos ARS y USD.
-          <br><span style="color:var(--text3)">Screenshot requiere API key.</span>
-        </p>
-        <div class="drop-zone" id="dz-santander" ondragover="dzDragOver(event,'dz-santander')" ondragleave="dzDragLeave('dz-santander')" ondrop="dzDrop(event,'santander')">
-          <input type="file" accept=".xls,.xlsx,.csv,image/*" onchange="handleSantander(event)">
-          <div class="drop-icon">🏦</div>
-          <div style="font-weight:500;margin-bottom:3px;">Subir Excel o screenshot</div>
-          <div style="font-size:11px;color:var(--text3)">XLS, XLSX, PNG, JPG</div>
-        </div>
-        <div class="import-msg" id="msg-santander"></div>
-        <div class="preview-wrap" id="preview-santander">
-          <div class="preview-title">Saldos detectados</div>
-          <table class="preview-table"><thead><tr><th>Cuenta</th><th>Moneda</th><th>Saldo</th></tr></thead>
-          <tbody id="preview-santander-body"></tbody></table>
-          <div class="preview-confirm">
-            <button class="btn" onclick="cancelPreview('santander')">Cancelar</button>
-            <button class="btn btn-primary" onclick="confirmImport('santander')">Actualizar saldos</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-    <div class="card">
-      <div class="card-title" style="margin-bottom:10px;">Guía rápida</div>
-      <ol class="help-steps">
-        <li><b>Mercado Pago CSV:</b> MP Web → Tu perfil → Descargar actividad → elegí el período → CSV</li>
-        <li><b>Mercado Pago screenshot:</b> Sacá captura de la lista de movimientos en la app o web, subila acá</li>
-        <li><b>Balanz:</b> Entrá a tu cuenta → Posición consolidada → Descargar PDF</li>
-        <li><b>Santander:</b> Home Banking → Resumen de cuentas → Exportar Excel</li>
-        <li>Para screenshots necesitás configurar tu API key de Anthropic (botón arriba a la derecha)</li>
-      </ol>
-    </div>
-  </div>
-
-</div><!-- /container -->
-
-<!-- MODAL: AGREGAR -->
+  <!-- MODAL: AGREGAR -->
 <div class="overlay" id="modal-add">
   <div class="modal" style="width:420px;">
     <div class="modal-header">
@@ -1296,7 +1159,7 @@ function addFixed(){
 // ═══════════════════════════════════════════════════
 // UI HELPERS
 // ═══════════════════════════════════════════════════
-const tabNames=['gastos','importar'];
+const tabNames=['gastos'];
 function showTab(name){
   tabNames.forEach(t=>{ const el2=document.getElementById('tab-'+t); if(el2) el2.style.display=t===name?'block':'none'; });
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',tabNames[i]===name));
@@ -1860,31 +1723,6 @@ function showDisponibleDetail() {
   openModal('modal-disponible');
 }
 
-function saveApiKey() {
-  const val = document.getElementById('api-key-input').value.trim();
-  if(!val.startsWith('sk-ant-')) { showNotif('La key debe comenzar con sk-ant-'); return; }
-  localStorage.setItem('fin_api_key', val);
-  updateApiBtn();
-  document.getElementById('api-setup').style.display='none';
-  showNotif('API key guardada — funciona en este dispositivo');
-}
-function clearApiKey() {
-  localStorage.removeItem('fin_api_key');
-  document.getElementById('api-key-input').value='';
-  updateApiBtn();
-  showNotif('API key eliminada');
-}
-function toggleApiSetup() {
-  const panel = document.getElementById('api-setup');
-  panel.style.display = panel.style.display==='none'?'block':'none';
-  document.getElementById('api-key-input').value = getApiKey();
-}
-function updateApiBtn() {
-  const btn = document.getElementById('api-key-btn');
-  if(!btn) return;
-  if(getApiKey()) { btn.textContent='⚡ IA ✓'; btn.style.color='var(--green)'; btn.style.borderColor='var(--green)'; }
-  else { btn.textContent='⚡ IA'; btn.style.color=''; btn.style.borderColor=''; }
-}
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
@@ -1933,7 +1771,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   const now = new Date();
   const dateEl = document.getElementById('topbar-date');
   if(dateEl) dateEl.textContent = now.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'long'});
-  updateApiBtn();
   await load();
   await applyFixedExpenses();
   refreshAll();
