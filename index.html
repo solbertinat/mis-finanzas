@@ -704,25 +704,29 @@ function updateMetrics() {
   const gastos = thisTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0) + fixedTotal;
   const ingresos = thisTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const disponible = ingresos - gastos;
-
   const lastGastos = lastTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0) + fixedTotal;
   const lastIngresos = lastTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
 
-  el('m-gastos').textContent = '$'+fmt(gastos);
-  el('m-disponible').textContent = '$'+fmt(disponible);
-  el('m-disponible').className = 'm-value mono '+(disponible>=0?'up':'dn');
-  el('m-ingresos').textContent = '$'+fmt(ingresos);
-  el('m-inv-usd').textContent = 'U$S '+fmt(state.balanz.usd);
-  el('m-inv-ars').textContent = '≈ $'+fmt(Math.round(state.balanz.usd*state.balanz.tc))+' ARS';
+  const setEl = (id, val, cls) => {
+    const e = document.getElementById(id);
+    if(!e) return;
+    if(val !== undefined) e.textContent = val;
+    if(cls !== undefined) e.className = cls;
+  };
+
+  setEl('m-gastos', '$'+fmt(gastos));
+  setEl('m-disponible', '$'+fmt(disponible), 'm-value mono '+(disponible>=0?'up':'dn'));
+  setEl('m-ingresos', '$'+fmt(ingresos));
 
   if(lastGastos>0) {
     const pct = Math.round((gastos-lastGastos)/lastGastos*100);
-    el('m-gastos-vs').textContent = (pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs mes anterior';
-    el('m-gastos-vs').className = 'm-sub '+(pct>0?'dn':'up');
+    setEl('m-gastos-vs', (pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs mes anterior');
+    const vs = document.getElementById('m-gastos-vs');
+    if(vs) vs.className = 'm-sub '+(pct>0?'dn':'up');
   }
   if(lastIngresos>0) {
     const pct = Math.round((ingresos-lastIngresos)/lastIngresos*100);
-    el('m-ingresos-vs').textContent = (pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs mes anterior';
+    setEl('m-ingresos-vs', (pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs mes anterior');
   }
 }
 
