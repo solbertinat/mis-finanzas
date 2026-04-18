@@ -247,10 +247,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div class="topbar-right">
     <span class="topbar-date" id="topbar-date"></span>
     <span id="save-indicator" style="font-size:11px;color:var(--green);opacity:0;transition:opacity 0.3s;font-family:'DM Mono',monospace;"></span>
-    <label class="api-key-btn" style="cursor:pointer;" title="Importar backup">
-      ↑ Importar
-      <input type="file" accept=".json" style="display:none;" onchange="importBackup(this.files[0])">
-    </label>
+    <button class="api-key-btn" onclick="openModal('modal-import')" title="Importar">↑ Importar</button>
     <button class="api-key-btn" onclick="exportBackup()" title="Exportar backup">↓ Backup</button>
   </div>
 </div>
@@ -1795,6 +1792,97 @@ window.addEventListener('DOMContentLoaded', async () => {
   <div class="modal" style="width:380px;">
     <div class="modal-header"><h3>Detalle — Dinero disponible</h3></div>
     <div class="modal-body" id="modal-disponible-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: IMPORTAR -->
+<div class="overlay" id="modal-import">
+  <div class="modal" style="width:500px;max-height:88vh;overflow-y:auto;">
+    <div class="modal-header"><h3>Importar datos</h3></div>
+    <div class="modal-body">
+
+      <!-- Screenshot MP -->
+      <div style="margin-bottom:20px;">
+        <div class="card-title" style="margin-bottom:8px;">Mercado Pago — screenshot</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Sacá un screenshot de tu actividad en MP y subilo. La IA extrae los movimientos automáticamente.</p>
+        <div class="drop-zone" id="dz-screenshot" ondragover="dzDragOver(event,'dz-screenshot')" ondragleave="dzDragLeave('dz-screenshot')">
+          <input type="file" accept="image/*" onchange="handleScreenshot(event)">
+          <div class="drop-icon">📷</div>
+          <div style="font-weight:500;margin-bottom:3px;">Subir screenshot</div>
+          <div style="font-size:11px;color:var(--text3);">PNG, JPG</div>
+        </div>
+        <div class="import-msg" id="msg-screenshot"></div>
+        <div class="preview-wrap" id="preview-screenshot">
+          <div class="preview-title">Movimientos detectados</div>
+          <table class="preview-table"><thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th><th>Tipo</th></tr></thead>
+          <tbody id="preview-screenshot-body"></tbody></table>
+          <div class="preview-confirm">
+            <button class="btn" onclick="cancelPreview('screenshot')">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmImport('screenshot')">Importar todos</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CSV MP -->
+      <div style="margin-bottom:20px;">
+        <div class="card-title" style="margin-bottom:8px;">Mercado Pago — CSV</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Exportá el CSV desde MP Web → Actividad → Descargar.</p>
+        <div class="drop-zone" id="dz-mpcsv" ondragover="dzDragOver(event,'dz-mpcsv')" ondragleave="dzDragLeave('dz-mpcsv')">
+          <input type="file" accept=".csv" onchange="handleMpCsv(event)">
+          <div class="drop-icon">📊</div>
+          <div style="font-weight:500;margin-bottom:3px;">Subir CSV</div>
+          <div style="font-size:11px;color:var(--text3);">CSV</div>
+        </div>
+        <div class="import-msg" id="msg-mpcsv"></div>
+        <div class="preview-wrap" id="preview-mpcsv">
+          <div class="preview-title">Movimientos detectados</div>
+          <table class="preview-table"><thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th><th>Medio</th></tr></thead>
+          <tbody id="preview-mpcsv-body"></tbody></table>
+          <div class="preview-confirm">
+            <button class="btn" onclick="cancelPreview('mpcsv')">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmImport('mpcsv')">Importar todos</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Balanz -->
+      <div style="margin-bottom:20px;">
+        <div class="card-title" style="margin-bottom:8px;">Balanz — posición consolidada</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Subí el PDF o screenshot de tu posición en Balanz.</p>
+        <div class="drop-zone" id="dz-balanz" ondragover="dzDragOver(event,'dz-balanz')" ondragleave="dzDragLeave('dz-balanz')">
+          <input type="file" accept=".pdf,image/*" onchange="handleBalanz(event)">
+          <div class="drop-icon">📑</div>
+          <div style="font-weight:500;margin-bottom:3px;">Subir PDF o screenshot</div>
+          <div style="font-size:11px;color:var(--text3);">PDF, PNG, JPG</div>
+        </div>
+        <div class="import-msg" id="msg-balanz"></div>
+        <div class="preview-wrap" id="preview-balanz">
+          <div class="preview-title">Cartera detectada</div>
+          <table class="preview-table"><thead><tr><th>Instrumento</th><th>Moneda</th><th>Valor</th></tr></thead>
+          <tbody id="preview-balanz-body"></tbody></table>
+          <div class="preview-confirm">
+            <button class="btn" onclick="cancelPreview('balanz')">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmImport('balanz')">Actualizar cartera</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backup -->
+      <div>
+        <div class="card-title" style="margin-bottom:8px;">Restaurar backup</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Importá un archivo de backup previamente descargado.</p>
+        <div class="drop-zone" id="dz-backup" ondragover="dzDragOver(event,'dz-backup')" ondragleave="dzDragLeave('dz-backup')">
+          <input type="file" accept=".json" onchange="importBackup(this.files[0])">
+          <div class="drop-icon">💾</div>
+          <div style="font-weight:500;margin-bottom:3px;">Subir backup JSON</div>
+          <div style="font-size:11px;color:var(--text3);">JSON</div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn" onclick="closeModal('modal-import')">Cerrar</button>
+      </div>
+    </div>
   </div>
 </div>
 </body>
