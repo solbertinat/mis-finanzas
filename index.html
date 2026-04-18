@@ -224,6 +224,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   .card { padding: 12px 14px; }
   .tx-desc { font-size: 12px; }
 }
+
+/* Category badges — colors match pie chart */
+.b-cat-food{background:#FFF0D6;color:#7A3800;border:1px solid #F5C070;}
+.b-cat-transport{background:#E0EDFF;color:#0A3D8F;border:1px solid #90B8F0;}
+.b-cat-services{background:#EDE0FF;color:#3D1A8F;border:1px solid #B090F0;}
+.b-cat-health{background:#FFE0E5;color:#8F0A1E;border:1px solid #F090A0;}
+.b-cat-entertain{background:#E0F5FF;color:#0A5A8F;border:1px solid #70C0F0;}
+.b-cat-hobbies{background:#E0FFE8;color:#0A6B2A;border:1px solid #70D090;}
+.b-cat-regalos{background:#FFE0F5;color:#8F0A6B;border:1px solid #F090D0;}
+.b-cat-vivienda{background:#F5EBD6;color:#5A3800;border:1px solid #C8A060;}
+.b-cat-otros{background:#EBEBEB;color:#444;border:1px solid #CCC;}
+.b-cat-mp{background:#FFF8D6;color:#7A5500;border:1px solid #E0C050;}
+.b-cat-generado{background:#D6FFE8;color:#0A5A2A;border:1px solid #60D090;}
+.b-income{background:#D6F5EB;color:#0A5A3A;border:1px solid #60C0A0;}
+.b-fixed{background:#EBEBEB;color:#444;border:1px solid #CCC;}
 </style>
 </head>
 <body>
@@ -556,6 +571,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
           <option value="generado">Generado (trabajo, freelance, etc.)</option>
         </select>
       </div>
+      <div class="fg" id="edit-fijo-wrap" style="display:flex;align-items:center;gap:10px;padding:6px 0;">
+        <input type="checkbox" id="edit-fijo" style="width:auto;cursor:pointer;">
+        <label for="edit-fijo" style="cursor:pointer;font-size:13px;color:var(--text);">Repetir todos los meses (fijo)</label>
+      </div>
       <div class="btn-row">
         <button class="btn btn-danger" onclick="deleteFromEdit()">Eliminar</button>
         <button class="btn" onclick="closeModal('modal-edit')">Cancelar</button>
@@ -740,7 +759,7 @@ function getApiKey() { return localStorage.getItem('fin_api_key')||''; }
 // TRANSACTION LIST
 // ═══════════════════════════════════════════════════
 const catIcon = {comida:'🛒',transporte:'🚌',servicios:'💡',salud:'💊',entretenimiento:'🎬',otros:'💸',vivienda:'🏠',inversion:'📈',rendimiento:'💹',unknown:'💳'};
-const catBadge = {comida:'b-food',transporte:'b-transport',servicios:'b-services',salud:'b-health',entretenimiento:'b-entertainment',hobbies:'b-mp',regalos:'b-mp',otros:'b-cash',vivienda:'b-fixed',inversion:'b-income',rendimiento:'b-income',mp:'b-mp',income:'b-income',unknown:'b-fixed'};
+const catBadge = {comida:'b-cat-food',transporte:'b-cat-transport',servicios:'b-cat-services',salud:'b-cat-health',entretenimiento:'b-cat-entertain',hobbies:'b-cat-hobbies',regalos:'b-cat-regalos',otros:'b-cat-otros',vivienda:'b-cat-vivienda',inversion:'b-income',rendimiento:'b-income',mp:'b-cat-mp',income:'b-income',income_generado:'b-cat-generado',unknown:'b-cat-otros'};
 
 
 function addTransaction(tx) {
@@ -932,13 +951,19 @@ function parseMpRows(rows) {
     const isIncome = amount>0 || typeVal.toLowerCase().includes('ingres') || typeVal.toLowerCase().includes('credit');
     const cat = guessCategory(desc);
 
+    // Normalize rendimientos from MP
+    const normalizedDesc = (/rendimiento/i.test(desc) || (Math.abs(amount) < 900 && isIncome))
+      ? 'R MP' : desc;
+    const normalizedType = normalizedDesc === 'R MP' ? 'income' : (isIncome ? 'income' : 'expense');
+
     result.push({
-      id: stableId(date, amount, desc, 'mp'),
-      originalId: stableId(date, amount, desc, 'mp'),
+      id: stableId(date, normalizedDesc === 'R MP' ? 'R MP' : desc, amount, 'mp'),
+      originalId: stableId(date, normalizedDesc === 'R MP' ? 'R MP' : desc, amount, 'mp'),
+      medio: 'mercado_pago',
       date,
-      desc: desc||'Movimiento MP',
+      desc: normalizedDesc||'Movimiento MP',
       amount: Math.abs(amount),
-      type: isIncome?'income':'expense',
+      type: normalizedType,
       category: isIncome?'income':cat,
       source: 'Mercado Pago'
     });
@@ -1026,14 +1051,14 @@ async function analyzeScreenshot(base64, mime, source) {
   showMsg(msgId,'Analizando screenshot con IA...','loading');
   el('preview-'+source).style.display='none';
   try {
-    const result = await callClaude(base64, mime, `Sos un analizador de movimientos financieros. 
-Analizá el screenshot de Mercado Pago y extraé todos los movimientos visibles.
+    const result = await callClaude(base64, mime, `Sos un analizador de movimientos financieros de Mercado Pago.
+Analizá el screenshot y extraé todos los movimientos visibles.
 Devolvé SOLO un array JSON con objetos con estos campos:
 - date: fecha en formato YYYY-MM-DD
-- desc: descripción del comercio o movimiento
+- desc: descripción. MUY IMPORTANTE: (1) Si ves "Rendimientos" o similar, usá exactamente "R MP". (2) Si ves "Transferencia enviada" seguido de un nombre, usá "Transferencia a [primer nombre]". (3) Si ves "Transferencia recibida" seguido de un nombre, usá "Transferencia de [primer nombre]". Para pagos en comercios usá el nombre del comercio.
 - amount: monto como número positivo
-- type: "expense" o "income" (ingreso)
-- category: una de: comida, transporte, servicios, salud, entretenimiento, otros
+- type: "expense" para pagos y transferencias enviadas, "income" para transferencias recibidas y cobros
+- category: una de: comida, transporte, servicios, salud, entretenimiento, hobbies, regalos, vivienda, otros
 Si no podés determinar un campo, usá valores razonables. NO incluyas texto explicativo, SOLO el JSON.`);
 
     const parsed = Array.isArray(result)?result:[result];
@@ -1045,7 +1070,8 @@ Si no podés determinar un campo, usá valores razonables. NO incluyas texto exp
       amount: Math.abs(parseFloat(r.amount)||0),
       type: r.type||'expense',
       category: r.category||'otros',
-      source:'Mercado Pago (screenshot)'
+      source:'Mercado Pago (screenshot)',
+        medio:'mercado_pago'
     })).filter(t=>t.amount>0);
 
     if(!txs.length) { showMsg(msgId,'No se detectaron movimientos en la imagen.','error'); return; }
@@ -1519,13 +1545,16 @@ async function saveAdd() {
 let _editSaving = false;
 
 function openEditModal(type, id) {
-  let item; const isFixed = type==='fixed'; const isIncomeFixed = type==='income_fixed';
+  let item; const isFixed=type==='fixed'; const isIncomeFixed=type==='income_fixed';
   if(isFixed) item=state.fixed.find(f=>String(f.id)===String(id));
   else if(isIncomeFixed) item=(state.incomeFixed||[]).find(f=>String(f.id)===String(id));
   else item=state.transactions.find(t=>String(t.id)===String(id));
   if(!item) return;
-  const isIncome = isIncomeFixed || (!isFixed && item.type==='income');
-  document.getElementById('modal-edit-title').textContent = isIncomeFixed?'Editar ingreso fijo':isFixed?'Editar gasto fijo':isIncome?'Editar ingreso':'Editar gasto';
+
+  const isIncome=isIncomeFixed||(!isFixed&&item.type==='income');
+  const isFijoTx = !isFixed&&!isIncomeFixed&&(item.source==='Fijo mensual'||item.source==='Ingreso fijo');
+
+  document.getElementById('modal-edit-title').textContent=isIncomeFixed?'Editar ingreso fijo':isFixed?'Editar gasto fijo':isIncome?'Editar ingreso':'Editar gasto';
   document.getElementById('edit-id').value=String(id);
   document.getElementById('edit-kind').value=type;
   document.getElementById('edit-desc').value=isFixed||isIncomeFixed?item.name:(item.desc||'');
@@ -1533,9 +1562,15 @@ function openEditModal(type, id) {
   document.getElementById('edit-cat').value=isFixed?(item.cat||'otros'):isIncomeFixed?'income':(item.category||'otros');
   document.getElementById('edit-medio').value=item.medio||'';
   document.getElementById('edit-fecha').value=isFixed||isIncomeFixed?'':(item.date||'');
+
   const incTypeWrap=document.getElementById('edit-income-type-wrap');
   if(incTypeWrap) incTypeWrap.style.display=isIncome?'block':'none';
   if(isIncome) document.getElementById('edit-income-type').value=item.incomeType||'no_generado';
+
+  const fijoWrap=document.getElementById('edit-fijo-wrap');
+  if(fijoWrap) fijoWrap.style.display='flex';
+  document.getElementById('edit-fijo').checked=isFixed||isIncomeFixed||isFijoTx;
+
   openModal('modal-edit');
 }
 
@@ -1549,29 +1584,84 @@ async function saveEdit() {
   const medio=document.getElementById('edit-medio').value;
   const date=document.getElementById('edit-fecha').value;
   const incTypeWrap=document.getElementById('edit-income-type-wrap');
-  const incomeType=incTypeWrap&&incTypeWrap.style.display!=='none'?document.getElementById('edit-income-type').value:'';
+  const incomeType=incTypeWrap&&incTypeWrap.style.display!=='none'?document.getElementById('edit-income-type').value:'no_generado';
+  const esFijo=document.getElementById('edit-fijo').checked;
+  const isIncome=kind==='income_fixed'||(kind==='tx'&&(document.getElementById('edit-income-type-wrap').style.display!=='none'));
+
   if(!desc){showNotif('Ingresá una descripción');return;}
   if(!confirm(`¿Guardás los cambios en "${desc}"?`)) return;
   _editSaving=true;
   closeModal('modal-edit');
   showSavingIndicator('Guardando...');
-  if(kind==='fixed'){
-    const f=state.fixed.find(x=>String(x.id)===id);
-    if(f){f.name=desc;f.amount=amount;f.cat=cat;f.medio=medio;}
-    await save('fixed');
-  } else if(kind==='income_fixed'){
-    const f=(state.incomeFixed||[]).find(x=>String(x.id)===id);
-    if(f){f.name=desc;f.amount=amount;f.incomeType=incomeType;f.medio=medio;}
-    await save('income_fixed');
+
+  if(kind==='fixed') {
+    if(esFijo) {
+      // Stay as fixed
+      const f=state.fixed.find(x=>String(x.id)===id);
+      if(f){f.name=desc;f.amount=amount;f.cat=cat;f.medio=medio;}
+      await save('fixed');
+    } else {
+      // Convert fixed to regular transaction
+      const f=state.fixed.find(x=>String(x.id)===id);
+      state.fixed=state.fixed.filter(x=>String(x.id)!==id);
+      await deleteFromDB('fixed',id);
+      addTransaction({id:'manual-'+(nextId++),date:date||new Date().toISOString().split('T')[0],
+        desc,amount,type:'expense',category:cat,source:medioLabel(medio),medio,incomeType:''});
+      await save('fixed'); await save('transactions');
+    }
+  } else if(kind==='income_fixed') {
+    if(esFijo) {
+      const f=(state.incomeFixed||[]).find(x=>String(x.id)===id);
+      if(f){f.name=desc;f.amount=amount;f.incomeType=incomeType;f.medio=medio;}
+      await save('income_fixed');
+    } else {
+      state.incomeFixed=(state.incomeFixed||[]).filter(x=>String(x.id)!==id);
+      await supa.delete(`income_fixed?id=eq.${id}`);
+      addTransaction({id:'manual-'+(nextId++),date:date||new Date().toISOString().split('T')[0],
+        desc,amount,type:'income',category:'income',source:medioLabel(medio),medio,incomeType});
+      await save('income_fixed'); await save('transactions');
+    }
   } else {
     const tx=state.transactions.find(t=>String(t.id)===id);
-    if(tx){
-      tx.desc=desc;tx.amount=amount;tx.category=cat;tx.medio=medio;
-      tx.source=medioLabel(medio);tx.incomeType=incomeType;
+    if(tx) {
+      const wasFixed=tx.source==='Fijo mensual'||tx.source==='Ingreso fijo';
+      tx.desc=desc; tx.amount=amount;
+      tx.category=isIncome?'income':cat;
+      tx.medio=medio; tx.incomeType=incomeType;
       if(date){tx.date=date;const d=new Date(date);tx.month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+
+      if(esFijo && !wasFixed) {
+        // Convert to fixed — add to fixed list
+        if(isIncome) {
+          state.incomeFixed=state.incomeFixed||[];
+          state.incomeFixed.push({id:nextId++,name:desc,amount,incomeType,medio});
+          tx.source='Ingreso fijo';
+          await save('income_fixed');
+        } else {
+          state.fixed.push({id:nextId++,name:desc,amount,cat,medio});
+          tx.source='Fijo mensual';
+          await save('fixed');
+        }
+      } else if(!esFijo && wasFixed) {
+        // Remove from fixed — keep as regular transaction
+        if(isIncome) {
+          const fName=tx.desc;
+          const fIdx=(state.incomeFixed||[]).findIndex(f=>f.name===fName);
+          if(fIdx>-1){const fid=state.incomeFixed[fIdx].id;state.incomeFixed.splice(fIdx,1);await supa.delete(`income_fixed?id=eq.${fid}`);}
+        } else {
+          const fName=tx.desc;
+          const fIdx=state.fixed.findIndex(f=>f.name===fName);
+          if(fIdx>-1){const fid=state.fixed[fIdx].id;state.fixed.splice(fIdx,1);await deleteFromDB('fixed',fid);}
+        }
+        tx.source=medioLabel(medio)||'Manual';
+        await save('fixed'); await save('income_fixed');
+      } else {
+        tx.source=esFijo?(isIncome?'Ingreso fijo':'Fijo mensual'):medioLabel(medio)||'Manual';
+      }
+      await save('transactions');
     }
-    await save('transactions');
   }
+
   hideSavingIndicator();
   refreshAll();
   _editSaving=false;
@@ -1616,7 +1706,10 @@ function renderTxList() {
 
   const makeRow=(t,tipo)=>{
     const isFixed=t.source==='Fijo mensual'||t.source==='Ingreso fijo';
-    const icon=isFixed?'🔒':(catIcon[t.category]||catIcon.unknown);
+    let icon;
+    if(isFixed) icon='🔒';
+    else if(tipo==='income') icon=t.incomeType==='generado'?'💰':'💵';
+    else icon=catIcon[t.category]||catIcon.unknown;
     const badge=catBadge[t.category]||catBadge.unknown;
     const sign=tipo==='income'?'+':'−';
     const col=tipo==='income'?'pos':'neg';
@@ -1651,7 +1744,12 @@ function buildPieChart() {
   if(fixedTotal>0) cats['fijos']=(cats['fijos']||0)+fixedTotal;
   const labels=Object.keys(cats);
   const data=labels.map(k=>cats[k]);
-  const colors=['#BA7517','#378ADD','#7F77DD','#1D9E75','#888780','#D85A30','#185FA5','#0F6E56'];
+  const catColors={
+    comida:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',
+    salud:'#E03050',entretenimiento:'#30A0E0',hobbies:'#30C060',
+    regalos:'#E030A0',vivienda:'#C09040',otros:'#999999',fijos:'#BBBBBB'
+  };
+  const colors=labels.map(l=>catColors[l]||'#888888');
   if(charts.pie) charts.pie.destroy();
   const legendEl=document.getElementById('pie-legend');
   if(legendEl) legendEl.innerHTML=labels.map((l,i)=>`<span class="leg"><span class="leg-dot" style="background:${colors[i%colors.length]}"></span>${l}</span>`).join('');
