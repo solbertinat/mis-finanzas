@@ -508,7 +508,7 @@ async function load() {
       supa.get('balanz?id=eq.1'),
       supa.get('saldos?id=eq.1'),
     ]);
-    const rawTxs = (txs||[]).map(t => ({...t, desc: t.description, originalId: t.original_id || t.id, incomeType: t.income_type || 'no_generado'}));
+    const rawTxs = (txs||[]).map(t => { const p=(t.date||'').substring(0,10).split('-'); const month=p.length>=2?`${p[0]}-${p[1]}`:(t.month||''); return {...t, desc:t.description, originalId:t.original_id||t.id, incomeType:t.income_type||'no_generado', month}; });
     // Dedup: remove duplicate fijo mensual entries (keep first)
     const seenFijoIds = new Set();
     state.transactions = rawTxs.filter(t => {
@@ -864,8 +864,6 @@ function handleScreenshot(event) {
   reader.onload = (e) => {
     const base64 = e.target.result.split(',')[1];
     const mime = file.type||'image/png';
-    el('screenshot-img').src = e.target.result;
-    el('screenshot-preview').style.display='block';
     analyzeScreenshot(base64, mime, 'screenshot');
   };
   reader.readAsDataURL(file);
@@ -1176,7 +1174,8 @@ function fmt(n){return Math.round(n||0).toLocaleString('es-AR');}
 function formatDate(d){
   if(!d)return '';
   try{
-    const dt=new Date(d);
+    const p=d.substring(0,10).split('-');
+    const dt=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
     return dt.toLocaleDateString('es-AR',{day:'numeric',month:'short'});
   }catch{return d;}
 }
@@ -1412,6 +1411,7 @@ async function saveAdd() {
     await save('income_fixed');
   } else {
     addTransaction({id:'manual-'+(nextId++),date,desc,amount,
+      month:date?date.substring(0,7):'',
       type:addTipo, category:addTipo==='income'?'income':cat,
       source:medioLabel(medio), medio, incomeType});
     await save('transactions');
@@ -1511,7 +1511,7 @@ async function saveEdit() {
       tx.desc=desc; tx.amount=amount;
       tx.category=isIncome?'income':cat;
       tx.medio=medio; tx.incomeType=incomeType;
-      if(date){tx.date=date;const d=new Date(date);tx.month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+      if(date){tx.date=date;const p=date.substring(0,10).split('-');tx.month=`${p[0]}-${p[1]}`;}
 
       if(esFijo && !wasFixed) {
         // Convert to fixed — add to fixed list
@@ -1841,28 +1841,6 @@ window.addEventListener('DOMContentLoaded', async () => {
           <div class="preview-confirm">
             <button class="btn" onclick="cancelPreview('mpcsv')">Cancelar</button>
             <button class="btn btn-primary" onclick="confirmImport('mpcsv')">Importar todos</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Balanz -->
-      <div style="margin-bottom:20px;">
-        <div class="card-title" style="margin-bottom:8px;">Balanz — posición consolidada</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Subí el PDF o screenshot de tu posición en Balanz.</p>
-        <div class="drop-zone" id="dz-balanz" ondragover="dzDragOver(event,'dz-balanz')" ondragleave="dzDragLeave('dz-balanz')">
-          <input type="file" accept=".pdf,image/*" onchange="handleBalanz(event)">
-          <div class="drop-icon">📑</div>
-          <div style="font-weight:500;margin-bottom:3px;">Subir PDF o screenshot</div>
-          <div style="font-size:11px;color:var(--text3);">PDF, PNG, JPG</div>
-        </div>
-        <div class="import-msg" id="msg-balanz"></div>
-        <div class="preview-wrap" id="preview-balanz">
-          <div class="preview-title">Cartera detectada</div>
-          <table class="preview-table"><thead><tr><th>Instrumento</th><th>Moneda</th><th>Valor</th></tr></thead>
-          <tbody id="preview-balanz-body"></tbody></table>
-          <div class="preview-confirm">
-            <button class="btn" onclick="cancelPreview('balanz')">Cancelar</button>
-            <button class="btn btn-primary" onclick="confirmImport('balanz')">Actualizar cartera</button>
           </div>
         </div>
       </div>
