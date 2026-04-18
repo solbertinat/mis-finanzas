@@ -1812,11 +1812,51 @@ function renderTxList() {
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
+async function applyFixedExpenses() {
+  if(!state.fixed.length) return;
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const firstDay = `${thisMonth}-01`;
+
+  // Check if fixed expenses for this month already exist
+  const alreadyApplied = state.transactions.some(t =>
+    t.month === thisMonth && t.source === 'Fijo mensual'
+  );
+  if(alreadyApplied) return;
+
+  // Create a transaction for each fixed expense
+  let added = false;
+  for(const f of state.fixed) {
+    const id = `fixed-auto-${thisMonth}-${f.id}`;
+    // Double check this specific fixed expense isn't already there
+    if(state.transactions.find(t => t.id === id)) continue;
+    addTransaction({
+      id,
+      originalId: id,
+      date: firstDay,
+      desc: f.name,
+      amount: f.amount,
+      type: 'expense',
+      category: f.cat || 'otros',
+      source: 'Fijo mensual',
+      medio: f.medio || '',
+      month: thisMonth
+    });
+    added = true;
+  }
+
+  if(added) {
+    await save('transactions');
+    showNotif('Gastos fijos aplicados para ' + now.toLocaleDateString('es-AR',{month:'long',year:'numeric'}));
+  }
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
   const now = new Date();
   const dateEl = document.getElementById('topbar-date');
   if(dateEl) dateEl.textContent = now.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'long'});
   await load();
+  await applyFixedExpenses();
   refreshAll();
 });
 </script>
