@@ -249,8 +249,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
   <div class="metrics">
     <div class="metric">
       <div class="m-label">Dinero disponible</div>
-      <div class="m-value mono" id="m-disponible">$0</div>
-      <div class="m-sub" style="color:var(--text3)">Ing. no generados − gastos</div>
+      <div class="m-value mono" id="m-disponible" style="cursor:pointer;" onclick="showDisponibleDetail()">$0</div>
+      <div class="m-sub" style="color:var(--text3)">Ing. no generados − gastos ↗</div>
     </div>
     <div class="metric">
       <div class="m-label">Gastos este mes</div>
@@ -1394,52 +1394,41 @@ function medioLabel(medio) {
 // METRICS
 // ═══════════════════════════════════════════════════
 function updateMetrics() {
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const lastMonth = now.getMonth()===0
-    ? `${now.getFullYear()-1}-12`
-    : `${now.getFullYear()}-${String(now.getMonth()).padStart(2,'0')}`;
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const lastMonth=now.getMonth()===0?`${now.getFullYear()-1}-12`:`${now.getFullYear()}-${String(now.getMonth()).padStart(2,'0')}`;
+  const thisTx=state.transactions.filter(t=>t.month===thisMonth);
+  const lastTx=state.transactions.filter(t=>t.month===lastMonth);
 
-  const thisTx = state.transactions.filter(t=>t.month===thisMonth);
-  const lastTx = state.transactions.filter(t=>t.month===lastMonth);
-  const fixedTotal = state.fixed.reduce((s,f)=>s+f.amount,0);
-  const incomeFixedTotal = (state.incomeFixed||[]).reduce((s,f)=>s+f.amount,0);
+  const fixedApplied=thisTx.some(t=>t.source==='Fijo mensual');
+  const incFixedApplied=thisTx.some(t=>t.source==='Ingreso fijo');
+  const fixedTotal=fixedApplied?0:state.fixed.reduce((s,f)=>s+f.amount,0);
+  const incFixedTotal=incFixedApplied?0:(state.incomeFixed||[]).reduce((s,f)=>s+f.amount,0);
 
-  const gastos = thisTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0) + fixedTotal;
-  const ingGenerados = thisTx.filter(t=>t.type==='income'&&t.incomeType==='generado').reduce((s,t)=>s+t.amount,0);
-  const ingNoGenerados = thisTx.filter(t=>t.type==='income'&&t.incomeType!=='generado').reduce((s,t)=>s+t.amount,0);
-  const disponible = ingNoGenerados - gastos;
+  const gastos=thisTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)+fixedTotal;
+  const ingGenerados=thisTx.filter(t=>t.type==='income'&&t.incomeType==='generado').reduce((s,t)=>s+t.amount,0);
+  const ingNoGenerados=thisTx.filter(t=>t.type==='income'&&t.incomeType!=='generado').reduce((s,t)=>s+t.amount,0)+incFixedTotal;
+  const disponible=ingNoGenerados-gastos;
 
-  const lastGastos = lastTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0) + fixedTotal;
-  const lastIngGen = lastTx.filter(t=>t.type==='income'&&t.incomeType==='generado').reduce((s,t)=>s+t.amount,0);
+  const lastGastos=lastTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const lastIngGen=lastTx.filter(t=>t.type==='income'&&t.incomeType==='generado').reduce((s,t)=>s+t.amount,0);
 
-  const setEl = (id, val, cls) => {
-    const e = document.getElementById(id);
-    if(!e) return;
-    if(val!==undefined) e.textContent = val;
-    if(cls!==undefined) e.className = cls;
-  };
+  const setEl=(id,val,cls)=>{const e=document.getElementById(id);if(!e)return;if(val!==undefined)e.textContent=val;if(cls!==undefined)e.className=cls;};
 
-  setEl('m-gastos', '$'+fmt(gastos));
-  setEl('m-disponible', '$'+fmt(disponible), 'm-value mono '+(disponible>=0?'up':'dn'));
-  setEl('m-ingresos', '$'+fmt(ingGenerados));
+  setEl('m-gastos','$'+fmt(gastos));
+  setEl('m-disponible','$'+fmt(disponible),'m-value mono '+(disponible>=0?'up':'dn'));
+  setEl('m-ingresos','$'+fmt(ingGenerados));
 
-  // Ahorros
-  const ahorros = state.saldos||{ars:0,usd:0,tc:1409};
-  const totalAhorros = (ahorros.ars||0) + ((ahorros.usd||0)*(ahorros.tc||1409));
-  setEl('m-ahorros', '$'+fmt(Math.round(totalAhorros)));
-  if(ahorros.usd>0) setEl('m-ahorros-sub', `ARS + U$S ${fmt(ahorros.usd)}`);
+  const ahorros=state.saldos||{ars:0,usd:0,tc:1409};
+  const totalAhorros=(ahorros.ars||0)+((ahorros.usd||0)*(ahorros.tc||1409));
+  setEl('m-ahorros','$'+fmt(Math.round(totalAhorros)));
+  if((ahorros.usd||0)>0) setEl('m-ahorros-sub','ARS + U$S '+fmt(ahorros.usd));
 
-  if(lastGastos>0) {
-    const pct = Math.round((gastos-lastGastos)/lastGastos*100);
-    setEl('m-gastos-vs', (pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs anterior');
-    const vs = document.getElementById('m-gastos-vs');
-    if(vs) vs.className = 'm-sub '+(pct>0?'dn':'up');
-  }
-  if(lastIngGen>0) {
-    const pct = Math.round((ingGenerados-lastIngGen)/lastIngGen*100);
-    setEl('m-ingresos-vs', (pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs anterior');
-  }
+  if(lastGastos>0){const pct=Math.round((gastos-lastGastos)/lastGastos*100);setEl('m-gastos-vs',(pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs anterior');const vs=document.getElementById('m-gastos-vs');if(vs)vs.className='m-sub '+(pct>0?'dn':'up');}
+  if(lastIngGen>0){const pct=Math.round((ingGenerados-lastIngGen)/lastIngGen*100);setEl('m-ingresos-vs',(pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs anterior');}
+
+  // Store for detail modal
+  window._metricsDetail = {gastos,ingGenerados,ingNoGenerados,disponible,fixedTotal,incFixedTotal,thisMonth};
 }
 
 // ═══════════════════════════════════════════════════
@@ -1624,16 +1613,23 @@ function renderTxList() {
   const sorted=[...state.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const expenses=sorted.filter(t=>t.type==='expense');
   const incomes=sorted.filter(t=>t.type==='income');
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const fixedApplied=state.transactions.some(t=>t.month===thisMonth&&t.source==='Fijo mensual');
+  const incFixedApplied=state.transactions.some(t=>t.month===thisMonth&&t.source==='Ingreso fijo');
+
   const makeRow=(t,tipo)=>{
-    const icon=catIcon[t.category]||catIcon.unknown;
+    const isFixed=t.source==='Fijo mensual'||t.source==='Ingreso fijo';
+    const icon=isFixed?'🔒':(catIcon[t.category]||catIcon.unknown);
     const badge=catBadge[t.category]||catBadge.unknown;
     const sign=tipo==='income'?'+':'−';
     const col=tipo==='income'?'pos':'neg';
-    const tag=tipo==='income'&&t.incomeType==='generado'?'<span class="badge b-income" style="margin-left:4px;">generado</span>':'';
+    const fixedBadge=isFixed?'<span class="badge b-fixed" style="margin-left:4px;">fijo</span>':'';
+    const genBadge=tipo==='income'&&t.incomeType==='generado'?'<span class="badge b-income" style="margin-left:4px;">generado</span>':'';
     return `<div class="tx-row" style="cursor:pointer;" onclick="openEditModal('tx','${String(t.id).replace(/'/g,"\'")}')">
       <div class="tx-icon">${icon}</div>
       <div class="tx-info">
-        <div class="tx-desc">${t.desc||'Movimiento'}${tag}</div>
+        <div class="tx-desc">${t.desc||'Movimiento'}${fixedBadge}${genBadge}</div>
         <div class="tx-meta">${t.source||'Manual'} <span class="badge ${badge}">${t.category||'otros'}</span></div>
       </div>
       <div class="tx-right">
@@ -1642,23 +1638,26 @@ function renderTxList() {
       </div>
     </div>`;
   };
-  const incomeFixedRows=(state.incomeFixed||[]).map(f=>`
-    <div class="tx-row" style="cursor:pointer;" onclick="openEditModal('income_fixed','${f.id}')">
-      <div class="tx-icon">🔒</div>
-      <div class="tx-info"><div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span>${f.incomeType==='generado'?'<span class="badge b-income" style="margin-left:4px;">generado</span>':''}</div>
-      <div class="tx-meta">Ingreso fijo · mensual</div></div>
-      <div class="tx-right"><div class="tx-amount pos">+$${fmt(f.amount)}</div></div>
-    </div>`);
-  const fixedRows=state.fixed.map(f=>`
-    <div class="tx-row" style="cursor:pointer;" onclick="openEditModal('fixed','${f.id}')">
+
+  const fixedRefRows=(!fixedApplied?state.fixed:[]).map(f=>`
+    <div class="tx-row" style="cursor:pointer;opacity:0.6;" onclick="openEditModal('fixed','${f.id}')">
       <div class="tx-icon">🔒</div>
       <div class="tx-info"><div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span></div>
-      <div class="tx-meta">${f.cat} · mensual</div></div>
+      <div class="tx-meta">${f.cat} · pendiente este mes</div></div>
       <div class="tx-right"><div class="tx-amount neg">−$${fmt(f.amount)}</div></div>
     </div>`);
-  expenseList.innerHTML=[...fixedRows,...expenses.map(t=>makeRow(t,'expense'))].join('')||
+
+  const incomeFixedRefRows=(!incFixedApplied?(state.incomeFixed||[]):[]).map(f=>`
+    <div class="tx-row" style="cursor:pointer;opacity:0.6;" onclick="openEditModal('income_fixed','${f.id}')">
+      <div class="tx-icon">🔒</div>
+      <div class="tx-info"><div class="tx-desc">${f.name} <span class="badge b-fixed">fijo</span></div>
+      <div class="tx-meta">Ingreso fijo · pendiente este mes</div></div>
+      <div class="tx-right"><div class="tx-amount pos">+$${fmt(f.amount)}</div></div>
+    </div>`);
+
+  expenseList.innerHTML=[...fixedRefRows,...expenses.map(t=>makeRow(t,'expense'))].join('')||
     '<div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div>';
-  incomeList.innerHTML=[...incomeFixedRows,...incomes.map(t=>makeRow(t,'income'))].join('')||
+  incomeList.innerHTML=[...incomeFixedRefRows,...incomes.map(t=>makeRow(t,'income'))].join('')||
     '<div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div>';
 }
 
@@ -1699,6 +1698,27 @@ function buildIncomePieChart() {
   });
 }
 
+
+function showDisponibleDetail() {
+  const d = window._metricsDetail || {};
+  const body = document.getElementById('modal-disponible-body');
+  if(!body) return;
+  const row = (label, val, col) => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px;">
+    <span style="color:var(--text2);">${label}</span>
+    <span style="font-family:'DM Mono',monospace;font-weight:500;color:${col||'var(--text)'};">$${fmt(val||0)}</span>
+  </div>`;
+  body.innerHTML = `
+    ${row('Ingresos no generados', d.ingNoGenerados, 'var(--green)')}
+    ${row('Gastos variables', (d.gastos||0)-(d.fixedTotal||0), 'var(--red)')}
+    ${row('Gastos fijos', d.fixedTotal||0, 'var(--red)')}
+    <div style="display:flex;justify-content:space-between;padding:12px 0;font-size:15px;font-weight:500;border-top:2px solid var(--border2);margin-top:4px;">
+      <span>Disponible</span>
+      <span style="font-family:'DM Mono',monospace;color:${(d.disponible||0)>=0?'var(--green)':'var(--red)'};">$${fmt(d.disponible||0)}</span>
+    </div>
+    <div class="btn-row"><button class="btn" onclick="closeModal('modal-disponible')">Cerrar</button></div>
+  `;
+  openModal('modal-disponible');
+}
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
@@ -1766,6 +1786,14 @@ window.addEventListener('DOMContentLoaded', async () => {
         <button class="btn btn-primary" onclick="saveAhorros()">Guardar</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: DISPONIBLE DETAIL -->
+<div class="overlay" id="modal-disponible">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header"><h3>Detalle — Dinero disponible</h3></div>
+    <div class="modal-body" id="modal-disponible-body"></div>
   </div>
 </div>
 </body>
