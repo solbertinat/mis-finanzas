@@ -829,12 +829,22 @@ function renderTxList() {
 // ═══════════════════════════════════════════════════
 function buildPieChart() {
   const cats={};
-  state.transactions.filter(t=>t.type==='expense').forEach(t=>{cats[t.category]=(cats[t.category]||0)+t.amount;});
-  const fixedTotal=state.fixed.reduce((s,f)=>s+f.amount,0);
-  if(fixedTotal>0) cats['fijos']=(cats['fijos']||0)+fixedTotal;
+  // All expense transactions (including fijo mensual ones — use their category, not 'fijos')
+  state.transactions.filter(t=>t.type==='expense').forEach(t=>{
+    const cat = t.category||'otros';
+    cats[cat]=(cats[cat]||0)+t.amount;
+  });
+  // state.fixed items not yet applied this month — use their cat
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const fixedApplied=state.transactions.some(t=>t.month===thisMonth&&t.source==='Fijo mensual');
+  if(!fixedApplied) {
+    state.fixed.forEach(f=>{ const cat=f.cat||'otros'; cats[cat]=(cats[cat]||0)+f.amount; });
+  }
   const labels=Object.keys(cats);
   const data=labels.map(k=>cats[k]);
-  const catColors={delivery:'#E8850A',supermercado:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',salud:'#E03050',entretenimiento:'#9070E0',hobbies:'#30C060',regalos:'#E030A0',vivienda:'#C09040',otros:'#E0C000',fijos:'#4080D0'};
+  const total=data.reduce((s,v)=>s+v,0);
+  const catColors={delivery:'#E8850A',supermercado:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',salud:'#E03050',entretenimiento:'#9070E0',hobbies:'#30C060',regalos:'#E030A0',vivienda:'#C09040',otros:'#E0C000'};
   const colors=labels.map(l=>catColors[l]||'#888888');
   if(charts.pie) charts.pie.destroy();
   const legendEl=document.getElementById('pie-legend');
@@ -843,7 +853,11 @@ function buildPieChart() {
   charts.pie=new Chart(document.getElementById('pieChart'),{
     type:'doughnut',
     data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`$${fmt(ctx.parsed)}`}}},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+        const pct=total>0?Math.round(ctx.parsed/total*100):0;
+        return ` $${fmt(ctx.parsed)} (${pct}%)`;
+      }}}},
       onClick:(evt,elements)=>{if(!elements.length)return;filterByCategory(labels[elements[0].index]);}}
   });
 }
@@ -1397,7 +1411,6 @@ async function saveEdit() {
   const esFijo=document.getElementById('edit-fijo').checked;
   const isIncome=kind==='income_fixed'||(kind==='tx'&&incTypeWrap&&incTypeWrap.style.display!=='none');
   if(!desc){showNotif('Ingresá una descripción');return;}
-  if(!confirm(`¿Guardás los cambios en "${desc}"?`)) return;
   _editSaving=true;
   closeModal('modal-edit');
   showSavingIndicator('Guardando...');
