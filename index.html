@@ -354,7 +354,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="fg" id="add-cat-wrap"><label>Categoría</label>
           <select id="add-cat">
-            <option value="delivery">Delivery / salir</option>
+            <option value="comidas">Comidas</option>
             <option value="supermercado">Supermercado</option>
             <option value="transporte">Transporte</option>
             <option value="servicios">Servicios</option>
@@ -413,7 +413,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="fg"><label>Categoría</label>
           <select id="edit-cat">
-            <option value="delivery">Delivery / salir</option>
+            <option value="comidas">Comidas</option>
             <option value="supermercado">Supermercado</option>
             <option value="transporte">Transporte</option>
             <option value="servicios">Servicios</option>
@@ -647,8 +647,8 @@ function hideSavingIndicator() {
 // ═══════════════════════════════════════════════════
 // TRANSACTION LIST
 // ═══════════════════════════════════════════════════
-const catIcon = {delivery:'🧋',supermercado:'🛒',transporte:'🚌',servicios:'💡',salud:'💊',entretenimiento:'🎬',otros:'💸',vivienda:'🏠',inversion:'📈',rendimiento:'💹',unknown:'💳'};
-const catBadge = {delivery:'b-cat-delivery',supermercado:'b-cat-food',transporte:'b-cat-transport',servicios:'b-cat-services',salud:'b-cat-health',entretenimiento:'b-cat-entertain',hobbies:'b-cat-hobbies',regalos:'b-cat-regalos',otros:'b-cat-otros',vivienda:'b-cat-vivienda',inversion:'b-income',rendimiento:'b-income',mp:'b-cat-mp',income:'b-income',income_generado:'b-cat-generado',unknown:'b-cat-otros'};
+const catIcon = {comidas:'🍽️',supermercado:'🛒',transporte:'🚌',servicios:'💡',salud:'💊',entretenimiento:'🎬',otros:'💸',vivienda:'🏠',inversion:'📈',rendimiento:'💹',unknown:'💳'};
+const catBadge = {comidas:'b-cat-delivery',supermercado:'b-cat-food',transporte:'b-cat-transport',servicios:'b-cat-services',salud:'b-cat-health',entretenimiento:'b-cat-entertain',hobbies:'b-cat-hobbies',regalos:'b-cat-regalos',otros:'b-cat-otros',vivienda:'b-cat-vivienda',inversion:'b-income',rendimiento:'b-income',mp:'b-cat-mp',income:'b-income',income_generado:'b-cat-generado',unknown:'b-cat-otros'};
 
 
 function addTransaction(tx) {
@@ -844,7 +844,7 @@ function buildPieChart() {
   const labels=Object.keys(cats);
   const data=labels.map(k=>cats[k]);
   const total=data.reduce((s,v)=>s+v,0);
-  const catColors={delivery:'#E8850A',supermercado:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',salud:'#E03050',entretenimiento:'#9070E0',hobbies:'#30C060',regalos:'#E030A0',vivienda:'#C09040',otros:'#E0C000'};
+  const catColors={comidas:'#E8850A',supermercado:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',salud:'#E03050',entretenimiento:'#9070E0',hobbies:'#30C060',regalos:'#E030A0',vivienda:'#C09040',otros:'#E0C000'};
   const colors=labels.map(l=>catColors[l]||'#888888');
   if(charts.pie) charts.pie.destroy();
   const legendEl=document.getElementById('pie-legend');
