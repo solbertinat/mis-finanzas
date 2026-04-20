@@ -755,6 +755,97 @@ function refreshAll() {
   buildBarChart();
 }
 
+
+// ═══════════════════════════════════════════════════
+// METRICS
+// ═══════════════════════════════════════════════════
+function updateMetrics() {
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const lastMonth=now.getMonth()===0?`${now.getFullYear()-1}-12`:`${now.getFullYear()}-${String(now.getMonth()).padStart(2,'0')}`;
+  const thisTx=state.transactions.filter(t=>t.month===thisMonth);
+  const lastTx=state.transactions.filter(t=>t.month===lastMonth);
+  const fixedApplied=thisTx.some(t=>t.source==='Fijo mensual');
+  const incFixedApplied=thisTx.some(t=>t.source==='Ingreso fijo');
+  const fixedTotal=fixedApplied?0:state.fixed.reduce((s,f)=>s+f.amount,0);
+  const incFixedTotal=incFixedApplied?0:(state.incomeFixed||[]).reduce((s,f)=>s+f.amount,0);
+  const gastos=thisTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)+fixedTotal;
+  const ingGenerados=thisTx.filter(t=>t.type==='income'&&t.incomeType==='generado').reduce((s,t)=>s+t.amount,0);
+  const ingNoGenerados=thisTx.filter(t=>t.type==='income'&&t.incomeType!=='generado').reduce((s,t)=>s+t.amount,0)+incFixedTotal;
+  const disponible=ingNoGenerados-gastos;
+  const lastGastos=lastTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const lastIngGen=lastTx.filter(t=>t.type==='income'&&t.incomeType==='generado').reduce((s,t)=>s+t.amount,0);
+  const setEl=(id,val,cls)=>{const e=document.getElementById(id);if(!e)return;if(val!==undefined)e.textContent=val;if(cls!==undefined)e.className=cls;};
+  setEl('m-gastos','$'+fmt(gastos));
+  setEl('m-disponible','$'+fmt(disponible),'m-value mono '+(disponible>=0?'up':'dn'));
+  setEl('m-ingresos','$'+fmt(ingGenerados));
+  const ahorros=state.saldos||{ars:0,usd:0,tc:1409};
+  const totalAhorros=(ahorros.ars||0)+((ahorros.usd||0)*(ahorros.tc||1409));
+  setEl('m-ahorros','$'+fmt(Math.round(totalAhorros)));
+  if((ahorros.usd||0)>0) setEl('m-ahorros-sub','ARS + U$S '+fmt(ahorros.usd));
+  if(lastGastos>0){const pct=Math.round((gastos-lastGastos)/lastGastos*100);setEl('m-gastos-vs',(pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs anterior');const vs=document.getElementById('m-gastos-vs');if(vs)vs.className='m-sub '+(pct>0?'dn':'up');}
+  if(lastIngGen>0){const pct=Math.round((ingGenerados-lastIngGen)/lastIngGen*100);setEl('m-ingresos-vs',(pct>0?'↑':'↓')+' '+Math.abs(pct)+'% vs anterior');}
+  window._metricsDetail={gastos,ingGenerados,ingNoGenerados,disponible,fixedTotal,incFixedTotal,thisMonth};
+}
+
+// ═══════════════════════════════════════════════════
+// TX LIST RENDER
+// ═══════════════════════════════════════════════════
+function renderTxList() {
+  const expenseList=document.getElementById('tx-list-expense');
+  const incomeList=document.getElementById('tx-list-income');
+  if(!expenseList||!incomeList) return;
+  const sorted=[...state.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const expenses=sorted.filter(t=>t.type==='expense');
+  const incomes=sorted.filter(t=>t.type==='income');
+  const makeRow=(t,tipo)=>{
+    const isFixed=t.source==='Fijo mensual'||t.source==='Ingreso fijo';
+    const icon=isFixed?'🔒':(tipo==='income'?(t.incomeType==='generado'?'💰':'💵'):(catIcon[t.category]||catIcon.unknown));
+    const badge=catBadge[t.category]||catBadge.unknown;
+    const sign=tipo==='income'?'+':'−';
+    const col=tipo==='income'?'pos':'neg';
+    const fixedBadge=isFixed?'<span class="badge b-fixed" style="margin-left:4px;">fijo</span>':'';
+    const genBadge=tipo==='income'&&t.incomeType==='generado'?'<span class="badge b-cat-generado" style="margin-left:4px;">generado</span>':'';
+    return `<div class="tx-row" style="cursor:pointer;" onclick="openEditModal('tx','${String(t.id).replace(/'/g,"\'")}')">
+      <div class="tx-icon">${icon}</div>
+      <div class="tx-info">
+        <div class="tx-desc">${t.desc||'Movimiento'}${fixedBadge}${genBadge}</div>
+        <div class="tx-meta">${t.source||'Manual'} <span class="badge ${badge}">${t.category||'otros'}</span></div>
+      </div>
+      <div class="tx-right">
+        <div class="tx-amount ${col}">${sign}$${fmt(t.amount)}</div>
+        <div class="tx-date-small">${formatDate(t.date)}</div>
+      </div>
+    </div>`;
+  };
+  expenseList.innerHTML=expenses.map(t=>makeRow(t,'expense')).join('')||'<div class="empty-state"><div class="es-icon">📭</div><p>Sin gastos cargados.</p></div>';
+  incomeList.innerHTML=incomes.map(t=>makeRow(t,'income')).join('')||'<div class="empty-state"><div class="es-icon">📭</div><p>Sin ingresos cargados.</p></div>';
+}
+
+// ═══════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════
+function buildPieChart() {
+  const cats={};
+  state.transactions.filter(t=>t.type==='expense').forEach(t=>{cats[t.category]=(cats[t.category]||0)+t.amount;});
+  const fixedTotal=state.fixed.reduce((s,f)=>s+f.amount,0);
+  if(fixedTotal>0) cats['fijos']=(cats['fijos']||0)+fixedTotal;
+  const labels=Object.keys(cats);
+  const data=labels.map(k=>cats[k]);
+  const catColors={comida:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',salud:'#E03050',entretenimiento:'#9070E0',hobbies:'#30C060',regalos:'#E030A0',vivienda:'#C09040',otros:'#E0C000',fijos:'#4080D0'};
+  const colors=labels.map(l=>catColors[l]||'#888888');
+  if(charts.pie) charts.pie.destroy();
+  const legendEl=document.getElementById('pie-legend');
+  if(legendEl) legendEl.innerHTML=labels.map((l,i)=>`<span class="leg"><span class="leg-dot" style="background:${colors[i]}"></span>${l}</span>`).join('');
+  if(!labels.length) return;
+  charts.pie=new Chart(document.getElementById('pieChart'),{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`$${fmt(ctx.parsed)}`}}},
+      onClick:(evt,elements)=>{if(!elements.length)return;filterByCategory(labels[elements[0].index]);}}
+  });
+}
+
 // ═══════════════════════════════════════════════════
 // MP CSV PARSER
 // ═══════════════════════════════════════════════════
