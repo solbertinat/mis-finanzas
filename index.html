@@ -1163,40 +1163,62 @@ function showDisponibleDetail() {
   const body = document.getElementById('modal-disponible-body');
   if(!body) return;
 
-  const row = (label, val, col, sub) => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
-      <div>
-        <div style="color:var(--text2);">${label}</div>
-        ${sub?`<div style="font-size:11px;color:var(--text3);">${sub}</div>`:''}
+  const renderTotals = () => {
+    body.innerHTML = `
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">Toca una fila para ver el detalle</div>
+      <div class="disp-row" onclick="renderDetail('ing')" style="cursor:pointer;">
+        <span style="color:var(--text2);">Ingresos no generados</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:500;color:var(--green);">+$${fmt(d.ingNoGenerados||0)}</span>
       </div>
-      <span style="font-family:'DM Mono',monospace;font-weight:500;color:${col||'var(--text)'};">$${fmt(val||0)}</span>
-    </div>`;
+      <div class="disp-row" onclick="renderDetail('gas')" style="cursor:pointer;">
+        <span style="color:var(--text2);">Gastos</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:500;color:var(--red);">−$${fmt(d.gastos||0)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0 4px;font-size:15px;font-weight:500;border-top:2px solid var(--border2);margin-top:4px;">
+        <span>Disponible</span>
+        <span style="font-family:'DM Mono',monospace;color:${(d.disponible||0)>=0?'var(--green)':'var(--red)'};">$${fmt(d.disponible||0)}</span>
+      </div>
+      <div class="btn-row"><button class="btn" onclick="closeModal('modal-disponible')">Cerrar</button></div>
+    `;
+  };
 
-  // Income breakdown
-  const ingNoGen = thisTx.filter(t=>t.type==='income'&&t.incomeType!=='generado');
-  const ingNoGenRows = ingNoGen.map(t=>row('&nbsp;&nbsp;'+t.desc, t.amount, 'var(--green)', formatDate(t.date))).join('');
-  const ingNoGenTotal = ingNoGen.reduce((s,t)=>s+t.amount,0) + (d.incFixedTotal||0);
+  window.renderDetail = (type) => {
+    let rows = '';
+    if(type === 'ing') {
+      const ingNoGen = thisTx.filter(t=>t.type==='income'&&t.incomeType!=='generado');
+      rows = ingNoGen.map(t=>`
+        <div class="disp-row">
+          <span style="color:var(--text2);">${t.desc||'Ingreso'}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--green);">+$${fmt(t.amount)}</span>
+        </div>`).join('');
+      if((d.incFixedTotal||0)>0) rows += `<div class="disp-row"><span style="color:var(--text2);">Ingresos fijos</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--green);">+$${fmt(d.incFixedTotal)}</span></div>`;
+      if(!rows) rows = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin ingresos no generados este mes.</div>';
+    } else {
+      const expTx = thisTx.filter(t=>t.type==='expense');
+      rows = expTx.map(t=>`
+        <div class="disp-row">
+          <span style="color:var(--text2);">${t.desc||'Gasto'}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red);">−$${fmt(t.amount)}</span>
+        </div>`).join('');
+      if((d.fixedTotal||0)>0) rows += `<div class="disp-row"><span style="color:var(--text2);">Gastos fijos</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red);">−$${fmt(d.fixedTotal)}</span></div>`;
+      if(!rows) rows = '<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin gastos este mes.</div>';
+    }
+    body.innerHTML = `
+      <button class="btn btn-sm" onclick="renderTotals()" style="margin-bottom:12px;">← Volver</button>
+      <div style="max-height:300px;overflow-y:auto;">${rows}</div>
+      <div class="btn-row"><button class="btn" onclick="closeModal('modal-disponible')">Cerrar</button></div>
+    `;
+  };
 
-  // Expense breakdown
-  const expTx = thisTx.filter(t=>t.type==='expense');
-  const expRows = expTx.map(t=>row('&nbsp;&nbsp;'+t.desc, t.amount, 'var(--red)', t.source)).join('');
-  const fixedRows = state.fixed.map(f=>row('&nbsp;&nbsp;'+f.name+' (fijo)', f.amount, 'var(--red)', 'mensual')).join('');
+  // CSS for rows
+  if(!document.getElementById('disp-style')) {
+    const s = document.createElement('style');
+    s.id = 'disp-style';
+    s.textContent = '.disp-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}.disp-row:hover{background:var(--surface2);}';
+    document.head.appendChild(s);
+  }
 
-  body.innerHTML = `
-    <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:8px 0 4px;">Ingresos no generados</div>
-    ${ingNoGenRows}
-    ${(d.incFixedTotal||0)>0?row('&nbsp;&nbsp;Ingresos fijos', d.incFixedTotal, 'var(--green)', 'mensual'):''}
-    ${row('Total ingresos no generados', ingNoGenTotal, 'var(--green)')}
-    <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:12px 0 4px;">Gastos</div>
-    ${d.fixedTotal>0?fixedRows:''}
-    ${expRows}
-    ${row('Total gastos', d.gastos, 'var(--red)')}
-    <div style="display:flex;justify-content:space-between;padding:12px 0 4px;font-size:15px;font-weight:500;border-top:2px solid var(--border2);margin-top:4px;">
-      <span>Disponible</span>
-      <span style="font-family:'DM Mono',monospace;color:${(d.disponible||0)>=0?'var(--green)':'var(--red)'};">$${fmt(d.disponible||0)}</span>
-    </div>
-    <div class="btn-row"><button class="btn" onclick="closeModal('modal-disponible')">Cerrar</button></div>
-  `;
+  renderTotals();
   openModal('modal-disponible');
 }
 
@@ -1234,6 +1256,217 @@ function triggerFileInput(type, accept) {
     document.body.removeChild(input);
   });
   input.click();
+}
+
+
+// ═══════════════════════════════════════════════════
+// MODAL AHORROS
+// ═══════════════════════════════════════════════════
+function openAhorrosModal() {
+  const s = state.saldos||{};
+  document.getElementById('ahorros-ars').value = s.ars||0;
+  document.getElementById('ahorros-usd').value = s.usd||0;
+  document.getElementById('ahorros-tc').value = s.tc||1409;
+  openModal('modal-ahorros');
+}
+
+async function saveAhorros() {
+  state.saldos = {
+    ars: parseFloat(document.getElementById('ahorros-ars').value)||0,
+    usd: parseFloat(document.getElementById('ahorros-usd').value)||0,
+    tc: parseFloat(document.getElementById('ahorros-tc').value)||1409,
+    updated: new Date().toISOString()
+  };
+  await save('saldos');
+  updateMetrics();
+  closeModal('modal-ahorros');
+  showNotif('Ahorros actualizados');
+}
+
+// ═══════════════════════════════════════════════════
+// MODAL AGREGAR
+// ═══════════════════════════════════════════════════
+let addTipo = 'expense';
+let nextId = Date.now();
+let _saving = false;
+
+function medioLabel(medio) {
+  return {efectivo:'Efectivo',tarjeta:'Tarjeta',transferencia:'Transferencia',mercado_pago:'Mercado Pago'}[medio]||medio||'Manual';
+}
+
+function openAddModal(tipo) {
+  addTipo = tipo||'expense';
+  document.getElementById('modal-add-title').textContent = addTipo==='income'?'Agregar ingreso':'Agregar gasto';
+  const fijoWrap = document.getElementById('add-fijo-wrap');
+  const incTypeWrap = document.getElementById('add-income-type-wrap');
+  const incFijoWrap = document.getElementById('add-income-fijo-wrap');
+  if(fijoWrap) fijoWrap.style.display = addTipo==='expense'?'flex':'none';
+  if(incTypeWrap) incTypeWrap.style.display = addTipo==='income'?'block':'none';
+  if(incFijoWrap) incFijoWrap.style.display = addTipo==='income'?'flex':'none';
+  document.getElementById('add-desc').value='';
+  document.getElementById('add-monto').value='';
+  document.getElementById('add-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('add-fijo').checked=false;
+  const incFijo = document.getElementById('add-income-fijo');
+  if(incFijo) incFijo.checked=false;
+  openModal('modal-add');
+}
+
+async function saveAdd() {
+  if(_saving) return;
+  const desc = document.getElementById('add-desc').value.trim();
+  const amount = parseFloat(document.getElementById('add-monto').value)||0;
+  const cat = document.getElementById('add-cat').value;
+  const medio = document.getElementById('add-medio').value;
+  const date = document.getElementById('add-fecha').value||new Date().toISOString().split('T')[0];
+  const esFijoGasto = addTipo==='expense' && document.getElementById('add-fijo').checked;
+  const incFijoEl = document.getElementById('add-income-fijo');
+  const esFijoIngreso = addTipo==='income' && incFijoEl && incFijoEl.checked;
+  const incTypeEl = document.getElementById('add-income-type');
+  const incomeType = addTipo==='income' ? (incTypeEl ? incTypeEl.value : 'no_generado') : '';
+  if(!desc){showNotif('Ingresá una descripción');return;}
+  if(!amount){showNotif('Ingresá un monto');return;}
+  _saving=true;
+  closeModal('modal-add');
+  showSavingIndicator('Guardando...');
+  if(esFijoGasto){
+    state.fixed.push({id:nextId++,name:desc,amount,cat,medio});
+    await save('fixed');
+  } else if(esFijoIngreso){
+    state.incomeFixed=state.incomeFixed||[];
+    state.incomeFixed.push({id:nextId++,name:desc,amount,incomeType,medio});
+    await save('income_fixed');
+  } else {
+    addTransaction({id:'manual-'+(nextId++),date,desc,amount,
+      type:addTipo, category:addTipo==='income'?'income':cat,
+      source:medioLabel(medio), medio, incomeType});
+    await save('transactions');
+  }
+  hideSavingIndicator();
+  refreshAll();
+  _saving=false;
+  showNotif(esFijoGasto?'Gasto fijo agregado':esFijoIngreso?'Ingreso fijo agregado':addTipo==='income'?'Ingreso agregado':'Gasto agregado');
+}
+
+// ═══════════════════════════════════════════════════
+// MODAL EDITAR
+// ═══════════════════════════════════════════════════
+let _editSaving = false;
+
+function openEditModal(type, id) {
+  let item; const isFixed=type==='fixed'; const isIncomeFixed=type==='income_fixed';
+  if(isFixed) item=state.fixed.find(f=>String(f.id)===String(id));
+  else if(isIncomeFixed) item=(state.incomeFixed||[]).find(f=>String(f.id)===String(id));
+  else item=state.transactions.find(t=>String(t.id)===String(id));
+  if(!item) return;
+  const isIncome=isIncomeFixed||(!isFixed&&item.type==='income');
+  const isFijoTx=!isFixed&&!isIncomeFixed&&(item.source==='Fijo mensual'||item.source==='Ingreso fijo');
+  document.getElementById('modal-edit-title').textContent=isIncomeFixed?'Editar ingreso fijo':isFixed?'Editar gasto fijo':isIncome?'Editar ingreso':'Editar gasto';
+  document.getElementById('edit-id').value=String(id);
+  document.getElementById('edit-kind').value=type;
+  document.getElementById('edit-desc').value=isFixed||isIncomeFixed?item.name:(item.desc||'');
+  document.getElementById('edit-monto').value=item.amount||0;
+  document.getElementById('edit-cat').value=isFixed?(item.cat||'otros'):isIncomeFixed?'income':(item.category||'otros');
+  document.getElementById('edit-medio').value=item.medio||'';
+  document.getElementById('edit-fecha').value=isFixed||isIncomeFixed?'':(item.date||'');
+  const incTypeWrap=document.getElementById('edit-income-type-wrap');
+  if(incTypeWrap) incTypeWrap.style.display=isIncome?'block':'none';
+  if(isIncome) document.getElementById('edit-income-type').value=item.incomeType||'no_generado';
+  const fijoWrap=document.getElementById('edit-fijo-wrap');
+  if(fijoWrap) fijoWrap.style.display='flex';
+  document.getElementById('edit-fijo').checked=isFixed||isIncomeFixed||isFijoTx;
+  openModal('modal-edit');
+}
+
+async function saveEdit() {
+  if(_editSaving) return;
+  const id=document.getElementById('edit-id').value;
+  const kind=document.getElementById('edit-kind').value;
+  const desc=document.getElementById('edit-desc').value.trim();
+  const amount=parseFloat(document.getElementById('edit-monto').value)||0;
+  const cat=document.getElementById('edit-cat').value;
+  const medio=document.getElementById('edit-medio').value;
+  const date=document.getElementById('edit-fecha').value;
+  const incTypeWrap=document.getElementById('edit-income-type-wrap');
+  const incomeType=incTypeWrap&&incTypeWrap.style.display!=='none'?document.getElementById('edit-income-type').value:'no_generado';
+  const esFijo=document.getElementById('edit-fijo').checked;
+  const isIncome=kind==='income_fixed'||(kind==='tx'&&incTypeWrap&&incTypeWrap.style.display!=='none');
+  if(!desc){showNotif('Ingresá una descripción');return;}
+  if(!confirm(`¿Guardás los cambios en "${desc}"?`)) return;
+  _editSaving=true;
+  closeModal('modal-edit');
+  showSavingIndicator('Guardando...');
+  if(kind==='fixed'){
+    if(esFijo){
+      const f=state.fixed.find(x=>String(x.id)===id);
+      if(f){f.name=desc;f.amount=amount;f.cat=cat;f.medio=medio;}
+      await save('fixed');
+    } else {
+      state.fixed=state.fixed.filter(x=>String(x.id)!==id);
+      await deleteFromDB('fixed',id);
+      addTransaction({id:'manual-'+(nextId++),date:date||new Date().toISOString().split('T')[0],
+        desc,amount,type:'expense',category:cat,source:medioLabel(medio),medio,incomeType:''});
+      await save('fixed'); await save('transactions');
+    }
+  } else if(kind==='income_fixed'){
+    if(esFijo){
+      const f=(state.incomeFixed||[]).find(x=>String(x.id)===id);
+      if(f){f.name=desc;f.amount=amount;f.incomeType=incomeType;f.medio=medio;}
+      await save('income_fixed');
+    } else {
+      state.incomeFixed=(state.incomeFixed||[]).filter(x=>String(x.id)!==id);
+      await supa.delete(`income_fixed?id=eq.${id}`);
+      addTransaction({id:'manual-'+(nextId++),date:date||new Date().toISOString().split('T')[0],
+        desc,amount,type:'income',category:'income',source:medioLabel(medio),medio,incomeType});
+      await save('income_fixed'); await save('transactions');
+    }
+  } else {
+    const tx=state.transactions.find(t=>String(t.id)===id);
+    if(tx){
+      const wasFixed=tx.source==='Fijo mensual'||tx.source==='Ingreso fijo';
+      tx.desc=desc;tx.amount=amount;tx.category=isIncome?'income':cat;
+      tx.medio=medio;tx.incomeType=incomeType;
+      if(date){tx.date=date;const d=new Date(date);tx.month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+      if(esFijo&&!wasFixed){
+        if(isIncome){state.incomeFixed=state.incomeFixed||[];state.incomeFixed.push({id:nextId++,name:desc,amount,incomeType,medio});tx.source='Ingreso fijo';await save('income_fixed');}
+        else{state.fixed.push({id:nextId++,name:desc,amount,cat,medio});tx.source='Fijo mensual';await save('fixed');}
+      } else if(!esFijo&&wasFixed){
+        if(isIncome){const fIdx=(state.incomeFixed||[]).findIndex(f=>f.name===tx.desc||f.name===desc);if(fIdx>-1){const fid=state.incomeFixed[fIdx].id;state.incomeFixed.splice(fIdx,1);await supa.delete(`income_fixed?id=eq.${fid}`);}}
+        else{const fIdx=state.fixed.findIndex(f=>f.name===tx.desc||f.name===desc);if(fIdx>-1){const fid=state.fixed[fIdx].id;state.fixed.splice(fIdx,1);await deleteFromDB('fixed',fid);}}
+        tx.source=medioLabel(medio)||'Manual';
+        await save('fixed');await save('income_fixed');
+      } else if(esFijo&&wasFixed){
+        tx.source=isIncome?'Ingreso fijo':'Fijo mensual';
+        if(isIncome){const f=(state.incomeFixed||[]).find(f=>f.name===tx.desc||f.name===desc);if(f){f.name=desc;f.amount=amount;f.incomeType=incomeType;f.medio=medio;}await save('income_fixed');}
+        else{const f=state.fixed.find(f=>f.name===tx.desc||f.name===desc);if(f){f.name=desc;f.amount=amount;f.cat=cat;f.medio=medio;}await save('fixed');}
+      } else {
+        tx.source=medioLabel(medio)||'Manual';
+      }
+      await save('transactions');
+    }
+  }
+  hideSavingIndicator();
+  refreshAll();
+  _editSaving=false;
+  showNotif('Actualizado');
+}
+
+async function deleteFromEdit() {
+  if(_editSaving) return;
+  const id=document.getElementById('edit-id').value;
+  const kind=document.getElementById('edit-kind').value;
+  const desc=document.getElementById('edit-desc').value||'este movimiento';
+  if(!confirm(`¿Eliminás "${desc}"?`)) return;
+  _editSaving=true;
+  closeModal('modal-edit');
+  showSavingIndicator('Eliminando...');
+  if(kind==='fixed'){state.fixed=state.fixed.filter(f=>String(f.id)!==id);await deleteFromDB('fixed',id);}
+  else if(kind==='income_fixed'){state.incomeFixed=(state.incomeFixed||[]).filter(f=>String(f.id)!==id);await supa.delete(`income_fixed?id=eq.${id}`);}
+  else{state.transactions=state.transactions.filter(t=>String(t.id)!==id);await deleteFromDB('transactions',id);}
+  hideSavingIndicator();
+  refreshAll();
+  _editSaving=false;
+  showNotif('Eliminado');
 }
 
 // ═══════════════════════════════════════════════════
