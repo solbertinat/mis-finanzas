@@ -221,7 +221,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 }
 
 /* Category badges — colors match pie chart */
-.b-cat-food{background:#FFF0D6;color:#7A3800;border:1px solid #F5C070;}
+.b-cat-food{background:#E0EDFF;color:#0A3D8F;border:1px solid #90B8F0;}
 .b-cat-delivery{background:#FFE8D0;color:#6B3000;border:1px solid #E8A060;}
 .b-cat-transport{background:#E0EDFF;color:#0A3D8F;border:1px solid #90B8F0;}
 .b-cat-services{background:#EDE0FF;color:#3D1A8F;border:1px solid #B090F0;}
@@ -229,7 +229,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .b-cat-entertain{background:#EDE0FF;color:#3D1A8F;border:1px solid #B090F0;}
 .b-cat-hobbies{background:#E0FFE8;color:#0A6B2A;border:1px solid #70D090;}
 .b-cat-regalos{background:#FFE0F5;color:#8F0A6B;border:1px solid #F090D0;}
-.b-cat-vivienda{background:#F5EBD6;color:#5A3800;border:1px solid #C8A060;}
+.b-cat-vivienda{background:#FFFACC;color:#6B5500;border:1px solid #E8D040;}
 .b-cat-otros{background:#FFF8D0;color:#6B5000;border:1px solid #E0C840;}
 .b-cat-mp{background:#FFF8D6;color:#7A5500;border:1px solid #E0C050;}
 .b-cat-generado{background:#D6FFE8;color:#0A5A2A;border:1px solid #60D090;}
@@ -647,7 +647,7 @@ function hideSavingIndicator() {
 // ═══════════════════════════════════════════════════
 // TRANSACTION LIST
 // ═══════════════════════════════════════════════════
-const catIcon = {comidas:'🍽️',supermercado:'🛒',transporte:'🚌',servicios:'💡',salud:'💊',entretenimiento:'🎬',otros:'💸',vivienda:'🏠',inversion:'📈',rendimiento:'💹',unknown:'💳'};
+const catIcon = {comidas:'🍽️',supermercado:'🛒',transporte:'🚌',servicios:'💡',salud:'💊',entretenimiento:'🎬',hobbies:'🎨',regalos:'🎁',otros:'💸',vivienda:'🏠',inversion:'📈',rendimiento:'💹',income:'💵',income_generado:'💰',unknown:'💳'};
 const catBadge = {comidas:'b-cat-delivery',supermercado:'b-cat-food',transporte:'b-cat-transport',servicios:'b-cat-services',salud:'b-cat-health',entretenimiento:'b-cat-entertain',hobbies:'b-cat-hobbies',regalos:'b-cat-regalos',otros:'b-cat-otros',vivienda:'b-cat-vivienda',inversion:'b-income',rendimiento:'b-income',mp:'b-cat-mp',income:'b-income',income_generado:'b-cat-generado',unknown:'b-cat-otros'};
 
 
@@ -844,7 +844,7 @@ function buildPieChart() {
   const labels=Object.keys(cats);
   const data=labels.map(k=>cats[k]);
   const total=data.reduce((s,v)=>s+v,0);
-  const catColors={comidas:'#E8850A',supermercado:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',salud:'#E03050',entretenimiento:'#9070E0',hobbies:'#30C060',regalos:'#E030A0',vivienda:'#C09040',otros:'#E0C000'};
+  const catColors={comidas:'#E8850A',supermercado:'#3A80E0',transporte:'#5060D0',servicios:'#9070E0',salud:'#E03050',entretenimiento:'#B060E0',hobbies:'#30C060',regalos:'#E030A0',vivienda:'#F0D030',otros:'#E0C000'};
   const colors=labels.map(l=>catColors[l]||'#888888');
   if(charts.pie) charts.pie.destroy();
   const legendEl=document.getElementById('pie-legend');
