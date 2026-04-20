@@ -222,6 +222,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 
 /* Category badges — colors match pie chart */
 .b-cat-food{background:#FFF0D6;color:#7A3800;border:1px solid #F5C070;}
+.b-cat-delivery{background:#FFE8D0;color:#6B3000;border:1px solid #E8A060;}
 .b-cat-transport{background:#E0EDFF;color:#0A3D8F;border:1px solid #90B8F0;}
 .b-cat-services{background:#EDE0FF;color:#3D1A8F;border:1px solid #B090F0;}
 .b-cat-health{background:#FFE0E5;color:#8F0A1E;border:1px solid #F090A0;}
@@ -351,9 +352,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div class="fg"><label>Descripción</label><input type="text" id="add-desc" placeholder="Ej: almacén, sueldo..."></div>
       <div class="fg"><label>Monto (ARS)</label><input type="number" id="add-monto" placeholder="0" min="0"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="fg"><label>Categoría</label>
+        <div class="fg" id="add-cat-wrap"><label>Categoría</label>
           <select id="add-cat">
-            <option value="comida">Comida</option>
+            <option value="delivery">Delivery / salir</option>
+            <option value="supermercado">Supermercado</option>
             <option value="transporte">Transporte</option>
             <option value="servicios">Servicios</option>
             <option value="salud">Salud</option>
@@ -411,7 +413,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="fg"><label>Categoría</label>
           <select id="edit-cat">
-            <option value="comida">Comida</option>
+            <option value="delivery">Delivery / salir</option>
+            <option value="supermercado">Supermercado</option>
             <option value="transporte">Transporte</option>
             <option value="servicios">Servicios</option>
             <option value="salud">Salud</option>
@@ -644,8 +647,8 @@ function hideSavingIndicator() {
 // ═══════════════════════════════════════════════════
 // TRANSACTION LIST
 // ═══════════════════════════════════════════════════
-const catIcon = {comida:'🛒',transporte:'🚌',servicios:'💡',salud:'💊',entretenimiento:'🎬',otros:'💸',vivienda:'🏠',inversion:'📈',rendimiento:'💹',unknown:'💳'};
-const catBadge = {comida:'b-cat-food',transporte:'b-cat-transport',servicios:'b-cat-services',salud:'b-cat-health',entretenimiento:'b-cat-entertain',hobbies:'b-cat-hobbies',regalos:'b-cat-regalos',otros:'b-cat-otros',vivienda:'b-cat-vivienda',inversion:'b-income',rendimiento:'b-income',mp:'b-cat-mp',income:'b-income',income_generado:'b-cat-generado',unknown:'b-cat-otros'};
+const catIcon = {delivery:'🧋',supermercado:'🛒',transporte:'🚌',servicios:'💡',salud:'💊',entretenimiento:'🎬',otros:'💸',vivienda:'🏠',inversion:'📈',rendimiento:'💹',unknown:'💳'};
+const catBadge = {delivery:'b-cat-delivery',supermercado:'b-cat-food',transporte:'b-cat-transport',servicios:'b-cat-services',salud:'b-cat-health',entretenimiento:'b-cat-entertain',hobbies:'b-cat-hobbies',regalos:'b-cat-regalos',otros:'b-cat-otros',vivienda:'b-cat-vivienda',inversion:'b-income',rendimiento:'b-income',mp:'b-cat-mp',income:'b-income',income_generado:'b-cat-generado',unknown:'b-cat-otros'};
 
 
 function addTransaction(tx) {
@@ -831,7 +834,7 @@ function buildPieChart() {
   if(fixedTotal>0) cats['fijos']=(cats['fijos']||0)+fixedTotal;
   const labels=Object.keys(cats);
   const data=labels.map(k=>cats[k]);
-  const catColors={comida:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',salud:'#E03050',entretenimiento:'#9070E0',hobbies:'#30C060',regalos:'#E030A0',vivienda:'#C09040',otros:'#E0C000',fijos:'#4080D0'};
+  const catColors={delivery:'#E8850A',supermercado:'#F5A030',transporte:'#3A80E0',servicios:'#9070E0',salud:'#E03050',entretenimiento:'#9070E0',hobbies:'#30C060',regalos:'#E030A0',vivienda:'#C09040',otros:'#E0C000',fijos:'#4080D0'};
   const colors=labels.map(l=>catColors[l]||'#888888');
   if(charts.pie) charts.pie.destroy();
   const legendEl=document.getElementById('pie-legend');
@@ -1303,6 +1306,8 @@ function openAddModal(tipo) {
   if(fijoWrap) fijoWrap.style.display = addTipo==='expense'?'flex':'none';
   if(incTypeWrap) incTypeWrap.style.display = addTipo==='income'?'block':'none';
   if(incFijoWrap) incFijoWrap.style.display = addTipo==='income'?'flex':'none';
+  const catWrap = document.getElementById('add-cat-wrap');
+  if(catWrap) catWrap.style.display = addTipo==='income'?'none':'block';
   document.getElementById('add-desc').value='';
   document.getElementById('add-monto').value='';
   document.getElementById('add-fecha').value=new Date().toISOString().split('T')[0];
