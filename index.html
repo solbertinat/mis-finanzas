@@ -236,6 +236,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
 .b-fixed{background:#D8EAFF;color:#0A2E6B;border:1px solid #80AAEE;}
 .api-key-btn{font-size:11px;padding:5px 12px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:"DM Sans",sans-serif;}
 .api-key-btn:hover{background:var(--surface2);}
+
+@media (max-width: 600px) {
+  .import-desktop-only { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -1813,7 +1817,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         <div class="card-title" style="margin-bottom:8px;">Mercado Pago — screenshot</div>
         <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Sacá un screenshot de tu actividad en MP y subilo. La IA extrae los movimientos automáticamente.</p>
         <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-          <input type="file" accept="image/*" id="input-screenshot" style="display:none;" onchange="handleScreenshot(event)">
+          <input type="file" accept="image/*" id="input-screenshot" style="display:none;">
           <button class="btn btn-primary" style="width:100%;padding:14px;" onclick="document.getElementById('input-screenshot').click()">
             📷 &nbsp; Seleccionar screenshot
           </button>
@@ -1831,16 +1835,14 @@ window.addEventListener('DOMContentLoaded', async () => {
         </div>
       </div>
 
-      <!-- CSV MP -->
+      <div class="import-desktop-only"><!-- CSV MP -->
       <div style="margin-bottom:20px;">
         <div class="card-title" style="margin-bottom:8px;">Mercado Pago — CSV</div>
         <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Exportá el CSV desde MP Web → Actividad → Descargar.</p>
-        <div class="drop-zone" id="dz-mpcsv" ondragover="dzDragOver(event,'dz-mpcsv')" ondragleave="dzDragLeave('dz-mpcsv')">
-          <input type="file" accept=".csv" onchange="handleMpCsv(event)">
-          <div class="drop-icon">📊</div>
-          <div style="font-weight:500;margin-bottom:3px;">Subir CSV</div>
-          <div style="font-size:11px;color:var(--text3);">CSV</div>
-        </div>
+        <input type="file" accept=".csv" id="input-mpcsv" style="display:none;">
+        <button class="btn btn-primary" style="width:100%;padding:14px;" onclick="document.getElementById('input-mpcsv').click()">
+          📊 &nbsp; Seleccionar CSV
+        </button>
         <div class="import-msg" id="msg-mpcsv"></div>
         <div class="preview-wrap" id="preview-mpcsv">
           <div class="preview-title">Movimientos detectados</div>
@@ -1853,18 +1855,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         </div>
       </div>
 
-      <!-- Backup -->
-      <div>
-        <div class="card-title" style="margin-bottom:8px;">Restaurar backup</div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;">Importá un archivo de backup previamente descargado.</p>
-        <div class="drop-zone" id="dz-backup" ondragover="dzDragOver(event,'dz-backup')" ondragleave="dzDragLeave('dz-backup')">
-          <input type="file" accept=".json" onchange="importBackup(this.files[0])">
-          <div class="drop-icon">💾</div>
-          <div style="font-weight:500;margin-bottom:3px;">Subir backup JSON</div>
-          <div style="font-size:11px;color:var(--text3);">JSON</div>
-        </div>
       </div>
-
       <div class="btn-row" style="margin-top:16px;">
         <button class="btn" onclick="closeModal('modal-import')">Cerrar</button>
       </div>
