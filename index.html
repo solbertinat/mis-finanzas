@@ -250,7 +250,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     <span class="brand">Mis finanzas <span class="brand-tag">personal</span></span>
   </div>
   <div class="topbar-right">
-    <span class="topbar-date" id="topbar-date"></span>
+    <span class="topbar-date" id="topbar-date" style="cursor:pointer;" onclick="openHistoryModal()"></span>
     <span id="save-indicator" style="font-size:11px;color:var(--green);opacity:0;transition:opacity 0.3s;font-family:'DM Mono',monospace;"></span>
     <button class="api-key-btn import-desktop-only" onclick="openModal('modal-import')" title="Importar">↑ Importar</button>
     <button class="api-key-btn" onclick="exportBackup()" title="Exportar backup">↓ Backup</button>
@@ -764,8 +764,9 @@ function refreshAll() {
 function updateMetrics() {
   const now=new Date();
   const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const filterMonth = window._historyMonth || thisMonth;
   const lastMonth=now.getMonth()===0?`${now.getFullYear()-1}-12`:`${now.getFullYear()}-${String(now.getMonth()).padStart(2,'0')}`;
-  const thisTx=state.transactions.filter(t=>t.month===thisMonth);
+  const thisTx=state.transactions.filter(t=>t.month===filterMonth);
   const lastTx=state.transactions.filter(t=>t.month===lastMonth);
   const fixedApplied=thisTx.some(t=>t.source==='Fijo mensual');
   const incFixedApplied=thisTx.some(t=>t.source==='Ingreso fijo');
@@ -797,7 +798,12 @@ function renderTxList() {
   const expenseList=document.getElementById('tx-list-expense');
   const incomeList=document.getElementById('tx-list-income');
   if(!expenseList||!incomeList) return;
-  const sorted=[...state.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const filterMonth = window._historyMonth || thisMonth;
+  const sorted=[...state.transactions]
+    .filter(t=>t.month===filterMonth)
+    .sort((a,b)=>new Date(b.date)-new Date(a.date));
   const expenses=sorted.filter(t=>t.type==='expense');
   const incomes=sorted.filter(t=>t.type==='income');
   const makeRow=(t,tipo)=>{
@@ -828,17 +834,16 @@ function renderTxList() {
 // CHARTS
 // ═══════════════════════════════════════════════════
 function buildPieChart() {
-  const cats={};
-  // All expense transactions (including fijo mensual ones — use their category, not 'fijos')
-  state.transactions.filter(t=>t.type==='expense').forEach(t=>{
-    const cat = t.category||'otros';
-    cats[cat]=(cats[cat]||0)+t.amount;
-  });
-  // state.fixed items not yet applied this month — use their cat
   const now=new Date();
   const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const fixedApplied=state.transactions.some(t=>t.month===thisMonth&&t.source==='Fijo mensual');
-  if(!fixedApplied) {
+  const filterMonth = window._historyMonth || thisMonth;
+  const cats={};
+  state.transactions.filter(t=>t.type==='expense'&&t.month===filterMonth).forEach(t=>{
+    const cat=t.category||'otros';
+    cats[cat]=(cats[cat]||0)+t.amount;
+  });
+  const fixedApplied=state.transactions.some(t=>t.month===filterMonth&&t.source==='Fijo mensual');
+  if(!fixedApplied && filterMonth===thisMonth) {
     state.fixed.forEach(f=>{ const cat=f.cat||'otros'; cats[cat]=(cats[cat]||0)+f.amount; });
   }
   const labels=Object.keys(cats);
@@ -857,8 +862,7 @@ function buildPieChart() {
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
         const pct=total>0?Math.round(ctx.parsed/total*100):0;
         return ` $${fmt(ctx.parsed)} (${pct}%)`;
-      }}}},
-      onClick:(evt,elements)=>{if(!elements.length)return;filterByCategory(labels[elements[0].index]);}}
+      }}}}}
   });
 }
 
@@ -1487,6 +1491,55 @@ async function deleteFromEdit() {
   showNotif('Eliminado');
 }
 
+
+function openHistoryModal() {
+  // Get all months with data
+  const months = [...new Set(state.transactions.map(t=>t.month).filter(Boolean))].sort().reverse();
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const active = window._historyMonth || thisMonth;
+
+  const container = document.getElementById('history-months');
+  const allMonths = [thisMonth, ...months.filter(m=>m!==thisMonth)];
+
+  container.innerHTML = allMonths.map(m => {
+    const [y,mo] = m.split('-');
+    const label = new Date(y, mo-1, 1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+    const isActive = m === active;
+    return `<button onclick="selectHistoryMonth('${m}')" style="
+      padding:10px 14px;border-radius:8px;border:1px solid ${isActive?'var(--green)':'var(--border)'};
+      background:${isActive?'var(--green-bg)':'var(--surface)'};color:${isActive?'var(--green)':'var(--text)'};
+      text-align:left;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;
+      ${m===thisMonth?'font-weight:500;':''}
+    ">${label}${m===thisMonth?' (actual)':''}</button>`;
+  }).join('');
+
+  openModal('modal-history');
+}
+
+function selectHistoryMonth(month) {
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  window._historyMonth = month === thisMonth ? null : month;
+
+  // Update topbar date display
+  const dateEl = document.getElementById('topbar-date');
+  if(dateEl) {
+    if(window._historyMonth) {
+      const [y,mo] = month.split('-');
+      const label = new Date(y, mo-1, 1).toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+      dateEl.textContent = label + ' ◀';
+      dateEl.style.color = 'var(--green)';
+    } else {
+      const now2 = new Date();
+      dateEl.textContent = now2.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'long'});
+      dateEl.style.color = '';
+    }
+  }
+  closeModal('modal-history');
+  refreshAll();
+}
+
 // ═══════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════
@@ -1593,6 +1646,19 @@ window.addEventListener('DOMContentLoaded', async () => {
       </div>
       <div class="btn-row" style="margin-top:16px;">
         <button class="btn" onclick="closeModal('modal-import')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: HISTORIAL -->
+<div class="overlay" id="modal-history">
+  <div class="modal" style="width:340px;">
+    <div class="modal-header"><h3>Ver mes</h3></div>
+    <div class="modal-body">
+      <div id="history-months" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn" onclick="closeModal('modal-history')">Cerrar</button>
       </div>
     </div>
   </div>
